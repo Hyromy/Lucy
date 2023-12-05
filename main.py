@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord import FFmpegPCMAudio
 from config import *
 
 intents = discord.Intents.all()
@@ -32,7 +33,10 @@ async def hola(ctx):
 async def join(ctx):
     if ctx.author.voice:
         channel = ctx.message.author.voice.channel
-        await channel.connect()
+        voide = await channel.connect()
+        source = FFmpegPCMAudio("audio/layla.wav")
+        player = voide.play(source)
+        
     else:
         await ctx.send("Tienes que estar primero en un canal de voz para acompañarte")
 
@@ -40,6 +44,7 @@ async def join(ctx):
 async def leave(ctx):
     if ctx.author.voice:
         await ctx.guild.voice_client.disconnect()
+        
     else:
         await ctx.send("No he llegado y ya me estan corriendo :c")
     
