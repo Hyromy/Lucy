@@ -22,6 +22,8 @@ client = commands.Bot(command_prefix = "l,", intents = intents)
 
 @client.event
 async def on_ready():
+    await client.change_presence(status = discord.Status.idle, activity = discord.Game("Invocación de los Sabios"))
+    
     print("-----------------------------------------")
     print("    LaylaBot no se ha quedado dormida    ")
     print("-----------------------------------------")
