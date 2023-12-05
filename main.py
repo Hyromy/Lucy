@@ -33,12 +33,41 @@ async def hola(ctx):
 async def join(ctx):
     if ctx.author.voice:
         channel = ctx.message.author.voice.channel
-        voide = await channel.connect()
+        voice = await channel.connect()
         source = FFmpegPCMAudio("audio/layla.wav")
-        player = voide.play(source)
+        player = voice.play(source)
         
     else:
         await ctx.send("Tienes que estar primero en un canal de voz para acompañarte")
+
+@client.command(pass_context = True)
+async def pause(ctx):
+    voice = discord.utils.get(client.voice_clients, guild = ctx.guild)
+    if voice.is_playing():
+        voice.pause()
+        
+    else:
+        await ctx.send("Por el momento no hay contenido que se este reproduciendo")
+
+@client.command(pass_context = True)
+async def resume(ctx):
+    voice = discord.utils.get(client.voice_clients, guild = ctx.guild)
+    if voice.is_paused():
+        voice.resume()
+        
+    else:
+        await ctx.send("No hay nada que este pausado")
+
+@client.command(pass_context = True)
+async def stop(ctx):
+    voice = discord.utils.get(client.voice_clients, guild = ctx.guild)
+    voice.stop()
+    
+@client.command(pass_context = True)
+async def play(ctx, arg):
+    voice = ctx.guild.voice_client
+    source = FFmpegPCMAudio(f"audio/{arg}.wav")
+    player = voice.play(source)
 
 @client.command(pass_context = True)
 async def leave(ctx):
