@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from config import *
 
 intents = discord.Intents.all()
 intents.members = True
@@ -13,8 +14,18 @@ async def on_ready():
     print("    LaylaBot no se ha quedado dormida    ")
     print("-----------------------------------------")
     
+@client.event
+async def on_member_join(member):
+    channel = client.get_channel(LOG_CHANNEL)
+    await channel.send(f"{member} se he unido :D")
+    
+@client.event
+async def on_member_remove(member):
+    channel = client.get_channel(LOG_CHANNEL)
+    await channel.send(f"{member} se ha ido :c")
+    
 @client.command()
 async def hola(ctx):
     await ctx.send("Hola!")
     
-client.run("MTE4MTA1NDYzMjc0MzY4NjE5NQ.Gpsls_.CXv0OSen-XWeevmiWgRE3SWmZtZLKW3FaVv0YU")
+client.run(TOKEN)
