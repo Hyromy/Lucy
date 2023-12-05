@@ -136,5 +136,16 @@ async def ban(ctx, member: discord.Member, *, reason = None):
 async def ban_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("No tienes permisos para banear miembros")
+        
+@client.command()
+async def embed(ctx):
+    embed = discord.Embed(title = "Cat", url = "https://google.com", description = "gato con botas equisde", color = 0x00bbff)
+    embed.set_author(name = ctx.author.display_name, url = "https://github.com/Hyromy", icon_url = ctx.author.avatar)
+    embed.set_thumbnail(url = ctx.author.avatar)
+    embed.add_field(name = "Subtema", value = "Este es un label con inline = False", inline = False)
+    embed.add_field(name = "Subtema 2", value = "Este es un label con inline = True", inline = True)
+    embed.add_field(name = "Subtema 3", value = "Este es un label con inline = True", inline = True)
+    embed.set_footer(text = "Este es el pie de pagina, esta bonito")
+    await ctx.send(embed = embed)
     
 client.run(TOKEN)
