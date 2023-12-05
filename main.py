@@ -7,6 +7,14 @@ intents = discord.Intents.all()
 intents.members = True
 intents.presences = True
 
+queues = {}
+
+def check_queue(ctx, id):
+    if queues[id] != []:
+        voice = ctx.guild.voice_client
+        source = queues[id].pop(0)
+        player = voice.play(source)
+
 client = commands.Bot(command_prefix = "l,", intents = intents)
 
 @client.event
@@ -43,6 +51,7 @@ async def join(ctx):
 @client.command(pass_context = True)
 async def pause(ctx):
     voice = discord.utils.get(client.voice_clients, guild = ctx.guild)
+    
     if voice.is_playing():
         voice.pause()
         
@@ -52,6 +61,7 @@ async def pause(ctx):
 @client.command(pass_context = True)
 async def resume(ctx):
     voice = discord.utils.get(client.voice_clients, guild = ctx.guild)
+    
     if voice.is_paused():
         voice.resume()
         
@@ -67,7 +77,21 @@ async def stop(ctx):
 async def play(ctx, arg):
     voice = ctx.guild.voice_client
     source = FFmpegPCMAudio(f"audio/{arg}.wav")
-    player = voice.play(source)
+    player = voice.play(source, after = lambda x = None: check_queue(ctx, ctx.message.guild.id))
+
+@client.command(pass_context = True)
+async def queue(ctx, arg):
+    voice = ctx.guild.voice_client
+    source = FFmpegPCMAudio(f"audio/{arg}.wav")
+    guild_id = ctx.message.guild.id
+    
+    if guild_id in queues:
+        queues[guild_id].append(source)
+        
+    else:
+        queues[guild_id] = [source]
+        
+    await ctx.send("Añadido a la lista de reproducción")
 
 @client.command(pass_context = True)
 async def leave(ctx):
