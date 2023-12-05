@@ -1,6 +1,9 @@
 import discord
-from discord.ext import commands
+from discord import Member
 from discord import FFmpegPCMAudio
+from discord.ext import commands
+from discord.ext.commands import has_permissions, MissingPermissions
+
 from config import *
 
 intents = discord.Intents.all()
@@ -32,6 +35,17 @@ async def on_member_join(member):
 async def on_member_remove(member):
     channel = client.get_channel(LOG_CHANNEL)
     await channel.send(f"{member} se ha ido :c")
+
+@client.event
+async def on_message(message):
+    if message.author == client.user:
+        return
+    
+    if message.content == "pto":
+        await message.delete()
+        await message.channel.send("No diga eso o lo meo")
+    else:
+        await client.process_commands(message)
     
 @client.command()
 async def hola(ctx):
@@ -100,5 +114,27 @@ async def leave(ctx):
         
     else:
         await ctx.send("No he llegado y ya me estan corriendo :c")
+        
+@client.command()
+@has_permissions(kick_members = True)
+async def kick(ctx, member: discord.Member, *, reason = None):
+    await member.kick(reason = reason)
+    await ctx.send(f"{member} fue expulsado/a")
+    
+@kick.error
+async def kick_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send("No tienes permisos para expulsar miembros")
+    
+@client.command()
+@has_permissions(ban_members = True)
+async def ban(ctx, member: discord.Member, *, reason = None):
+    await member.ban(reason = reason)
+    await ctx.send(f"{member} se fue con San Pedro")
+    
+@ban.error
+async def ban_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send("No tienes permisos para banear miembros")
     
 client.run(TOKEN)
