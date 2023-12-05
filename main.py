@@ -48,7 +48,7 @@ async def on_message(message):
         await message.channel.send("No diga eso o lo meo")
     else:
         await client.process_commands(message)
-    
+
 @client.command()
 async def hola(ctx):
     await ctx.send("Hola!")
@@ -149,5 +149,17 @@ async def embed(ctx):
     embed.add_field(name = "Subtema 3", value = "Este es un label con inline = True", inline = True)
     embed.set_footer(text = "Este es el pie de pagina, esta bonito")
     await ctx.send(embed = embed)
+    
+@client.command()
+async def tell(ctx, user:discord.Member, *, message):
+    embed = discord.Embed(title = None, description = message, color = 0x00bbff)
+    
+    autor = f"{ctx.author.display_name} te ha dicho:"
+    usuario_url = f"https://discord.com/users/{ctx.author.id}"
+    embed.set_author(name = autor, url = usuario_url, icon_url = ctx.author.avatar)
+    embed.set_footer(text = "Si tienes algún problema con este mensaje, por favor, contacta a los administradores del servidor.")
+    
+    await ctx.message.delete()
+    await user.send(embed = embed)
     
 client.run(TOKEN)
