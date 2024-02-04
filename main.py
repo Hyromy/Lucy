@@ -1,20 +1,24 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 
-intents = discord.Intents.all()
-intents.members = True
-intents.presences = True
+import os
+import asyncio
 
-client = commands.Bot(command_prefix = "l,", intents = intents)
+Layla = commands.Bot(command_prefix = ",", intents = discord.Intents.all())
 
-@client.event
+@Layla.event
 async def on_ready():
-    print("-----------------------------------------")
-    print("    LaylaBot no se ha quedado dormida    ")
-    print("-----------------------------------------")
-    
-@client.command()
-async def hola(ctx):
-    await ctx.send("Hola!")
-    
-client.run("MTE4MTA1NDYzMjc0MzY4NjE5NQ.Gpsls_.CXv0OSen-XWeevmiWgRE3SWmZtZLKW3FaVv0YU")
+    print("conectada")
+
+async def load():
+    for filename in os.listdir("./cogs"):
+        if filename.endswith(".py"):
+            await Layla.load_extension(f"cogs.{filename[:-3]}")
+            print(f"{filename[:-3]} Cargado")
+
+async def main():
+    async with Layla:
+        await load()
+        await Layla.start("MTE4MTA1NDYzMjc0MzY4NjE5NQ.GQCicc.GSOoKCSV0633-BGLzjd4oHWS6CdMNeskfvNG7I")
+
+asyncio.run(main())
