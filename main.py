@@ -1,14 +1,56 @@
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
 
 import os
 import asyncio
 
-Layla = commands.Bot(command_prefix = ",", intents = discord.Intents.all())
+import json
+
+from config import *
+
+def get_prefix_server(Layla, message):
+    with open("prefixes.json", "r") as f:
+        prefix = json.load(f)
+
+    return prefix[str(message.guild.id)]
+
+Layla = commands.Bot(command_prefix = get_prefix_server, intents = discord.Intents.all())
 
 @Layla.event
 async def on_ready():
-    print("conectada")
+    print("Conectada")
+
+@Layla.event
+async def on_guild_join(guild):
+    with open("prefixes.json", "r") as f:
+        prefix = json.load(f)
+
+    prefix[str(guild.id)] = ","
+
+    with open("prefixes.json", "w") as f:
+        json.dump(prefix, f, indent = 4)
+
+@Layla.event
+async def on_guild_remove(guild):
+    with open("prefixes.json", "r") as f:
+        prefix = json.load(f)
+
+    prefix.pop(str(guild.id))
+
+    with open("prefixes.json", "w") as f:
+        json.dump(prefix, f, indent = 4)
+
+@Layla.command
+async def setprefix(ctx, *, newprefix:str):
+    with open("prefixes.json", "r") as f:
+        prefix = json.load(f)
+
+    prefix[str(ctx.guild.id)] = newprefix
+
+    with open("prefixes.json", "w") as f:
+        json.dump(prefix, f, indent = 4)
+
+    await ctx.send(f"Prefijo cambiado a {newprefix}")
 
 async def load():
     for filename in os.listdir("./cogs"):
@@ -19,6 +61,6 @@ async def load():
 async def main():
     async with Layla:
         await load()
-        await Layla.start("MTE4MTA1NDYzMjc0MzY4NjE5NQ.GQCicc.GSOoKCSV0633-BGLzjd4oHWS6CdMNeskfvNG7I")
+        await Layla.start(TOKEN)
 
 asyncio.run(main())
