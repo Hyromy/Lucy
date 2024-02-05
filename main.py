@@ -1,12 +1,7 @@
+from config import *
 import discord
 from discord.ext import commands
-
-import os
-import asyncio
-
-import json
-
-from config import *
+import os, asyncio, json
 
 def get_prefix_server(Layla, message):
     with open("prefixes.json", "r") as f:
@@ -18,7 +13,14 @@ Layla = commands.Bot(command_prefix = get_prefix_server, intents = discord.Inten
 
 @Layla.event
 async def on_ready():
-    print("Conectada")
+    sp = 16
+    ready = f"{(" " * sp) + Layla.user.name} está lista{" " * sp}"
+    line = "-" * len(ready)
+
+    print()
+    print(line)
+    print(ready)
+    print(line)
 
 @Layla.event
 async def on_guild_join(guild):
@@ -52,11 +54,16 @@ async def setprefix(ctx, *, newprefix:str):
 
     await ctx.send(f"Prefijo cambiado a {newprefix}")
 
+@Layla.tree.command(name = "ping", description = "Mide la latencia del bot en milisegundos")
+async def ping(interaction: discord.Interaction):
+    latencia = round(Layla.latency * 1000)
+    await interaction.response.send_message(f"Pong! {latencia}ms")
+
 async def load():
     for filename in os.listdir("./cogs"):
         if filename.endswith(".py"):
             await Layla.load_extension(f"cogs.{filename[:-3]}")
-            print(f"{filename[:-3]} Cargado")
+            print(f"Cargando: {filename[:-3]}...")
 
 async def main():
     async with Layla:
