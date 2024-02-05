@@ -1,0 +1,5 @@
+__pycache__
+cogs/__pycache__
+config.py
+prefixes.json
+log_channels.json
