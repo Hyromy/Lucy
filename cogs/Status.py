@@ -14,7 +14,7 @@ class Status(commands.Cog):
 
     @tasks.loop(seconds = 60)
     async def newstatus(self):
-        with open("cogs/status.txt", "r", encoding = "utf-8") as f:
+        with open("./data/status.txt", "r", encoding = "utf-8") as f:
             activities = f.readlines()
             name = random.choice(activities)
 

@@ -8,33 +8,33 @@ class Configuration(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
-        with open("prefixes.json", "r") as f:
+        with open("./json/prefixes.json", "r") as f:
             prefix = json.load(f)
 
         prefix[str(guild.id)] = ","
 
-        with open("prefixes.json", "w") as f:
+        with open("./json/prefixes.json", "w") as f:
             json.dump(prefix, f, indent = 4)
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
-        with open("prefixes.json", "r") as f:
+        with open("./json/prefixes.json", "r") as f:
             prefix = json.load(f)
 
         prefix.pop(str(guild.id))
 
-        with open("prefixes.json", "w") as f:
+        with open("./json/prefixes.json", "w") as f:
             json.dump(prefix, f, indent = 4)
 
     @commands.command()
     @commands.has_permissions(administrator = True)
     async def prefix(self, ctx, new_prefix:str):
-        with open("prefixes.json", "r") as f:
+        with open("./json/prefixes.json", "r") as f:
             prefix = json.load(f)
 
         prefix[str(ctx.guild.id)] = new_prefix
 
-        with open("prefixes.json", "w") as f:
+        with open("./json/prefixes.json", "w") as f:
             json.dump(prefix, f, indent = 4)
 
         await ctx.send(f"Prefijo cambiado a {new_prefix}")  
@@ -46,12 +46,12 @@ class Configuration(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator = True)
     async def log(self, ctx, set_log:int):
-        with open("log_channels.json", "r") as f:
+        with open("./json/log_channels.json", "r") as f:
             log = json.load(f)
         
         log[str(ctx.guild.id)] = set_log
 
-        with open("log_channels.json", "w") as f:
+        with open("./json/log_channels.json", "w") as f:
             json.dump(log, f, indent = 4)
 
         await ctx.send(f"Canal de depuración establecido a <#{set_log}>")
@@ -64,7 +64,7 @@ class Configuration(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator = True)
     async def logremove(self, ctx):
-        with open("log_channels.json", "r") as f:
+        with open("./json/log_channels.json", "r") as f:
             log = json.load(f)
 
         try:
@@ -73,7 +73,7 @@ class Configuration(commands.Cog):
             await ctx.send("No hay ningun canal de depuración por eliminar")
             return
 
-        with open("log_channels.json", "w") as f:
+        with open("./json/log_channels.json", "w") as f:
             json.dump(log, f, indent = 4)
 
         await ctx.send("Canal de depuración eliminado")
@@ -85,7 +85,7 @@ class Configuration(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator = True)
     async def logtest(self, ctx, *, message):
-        with open("log_channels.json", "r") as f:
+        with open("./json/log_channels.json", "r") as f:
             log = json.load(f)
 
         channel_id = log.get(str(ctx.guild.id))

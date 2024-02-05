@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 import random
-from config import VERSION
+from data.config import VERSION
 
 class Commands(commands.Cog):
     def __init__(self, Layla):
@@ -14,7 +14,7 @@ class Commands(commands.Cog):
 
     @commands.command(aliases = ["8", "8ball"])
     async def ball(self, ctx, *x):
-        with open("cogs/ball.txt", "r") as f:
+        with open("./data/ball.txt", "r") as f:
             respuestas = f.readlines()
             respuesta = random.choice(respuestas)
             

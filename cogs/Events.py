@@ -14,7 +14,7 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
-        with open("log_channels.json", "r") as f:
+        with open("./json/log_channels.json", "r") as f:
             log = json.load(f)
 
         channel_id = log.get(str(member.guild.id))
@@ -24,7 +24,7 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_remove(self, member):
-        with open("log_channels.json", "r") as f:
+        with open("./json/log_channels.json", "r") as f:
             log = json.load(f)
 
         channel_id = log.get(str(member.guild.id))
