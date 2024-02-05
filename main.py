@@ -22,43 +22,6 @@ async def on_ready():
     print(ready)
     print(line)
 
-@Layla.event
-async def on_guild_join(guild):
-    with open("prefixes.json", "r") as f:
-        prefix = json.load(f)
-
-    prefix[str(guild.id)] = ","
-
-    with open("prefixes.json", "w") as f:
-        json.dump(prefix, f, indent = 4)
-
-@Layla.event
-async def on_guild_remove(guild):
-    with open("prefixes.json", "r") as f:
-        prefix = json.load(f)
-
-    prefix.pop(str(guild.id))
-
-    with open("prefixes.json", "w") as f:
-        json.dump(prefix, f, indent = 4)
-
-@Layla.command
-async def setprefix(ctx, *, newprefix:str):
-    with open("prefixes.json", "r") as f:
-        prefix = json.load(f)
-
-    prefix[str(ctx.guild.id)] = newprefix
-
-    with open("prefixes.json", "w") as f:
-        json.dump(prefix, f, indent = 4)
-
-    await ctx.send(f"Prefijo cambiado a {newprefix}")
-
-@Layla.tree.command(name = "ping", description = "Mide la latencia del bot en milisegundos")
-async def ping(interaction: discord.Interaction):
-    latencia = round(Layla.latency * 1000)
-    await interaction.response.send_message(f"Pong! {latencia}ms")
-
 async def load():
     for filename in os.listdir("./cogs"):
         if filename.endswith(".py"):
