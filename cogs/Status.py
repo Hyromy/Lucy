@@ -6,7 +6,7 @@ status = discord.Status.idle
 
 class Status(commands.Cog):
     def __init__(self, Layla):
-        self.Layla = Layla        
+        self.Layla = Layla
 
     @commands.Cog.listener()
     async def on_ready(self):

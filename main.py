@@ -7,7 +7,7 @@ def get_prefix_server(Layla, message):
     with open("prefixes.json", "r") as f:
         prefix = json.load(f)
 
-    return prefix[str(message.guild.id)]
+    return prefix.get(str(message.guild.id))
 
 Layla = commands.Bot(command_prefix = get_prefix_server, intents = discord.Intents.all())
 
@@ -20,6 +20,7 @@ async def on_ready():
     print()
     print(line)
     print(ready)
+    print(f"Versión: {VERSION}".center(len(line)))
     print(line)
 
 async def load():
