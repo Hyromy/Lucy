@@ -1,4 +1,4 @@
-from data.config import *
+from data.config import TOKEN, VERSION
 import discord
 from discord.ext import commands
 import os, asyncio, json

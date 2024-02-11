@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
-import random
-from data.config import VERSION
+import random, json
+from data.config import VERSION, NEXT_LEVEL
 
 class Commands(commands.Cog):
     def __init__(self, Layla):
@@ -40,6 +40,21 @@ class Commands(commands.Cog):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.message.delete()
             await ctx.author.send("Comando invalido, requiere argumentos adicionales. `tell @<miembro> <mensaje>`\n`<argumento>` Obligatorio")
+
+    @commands.command()
+    async def level(self, ctx, member:discord.Member = None):
+        if member is None:
+            member = ctx.author
+        
+        with open("./json/users.json", "r") as f:
+            users_level = json.load(f)
+
+        try:
+            level = users_level[f"{member.id}"]["Lvl"]
+            exp = users_level[f"{member.id}"]["Exp"]
+            await ctx.send(f"{member.mention} Nv.{level}\n{exp} / {NEXT_LEVEL(level)}exp.")
+        except KeyError:
+            await ctx.send(f"No tengo registros de {member.mention}")
 
 async def setup(Layla):
     await Layla.add_cog(Commands(Layla))
