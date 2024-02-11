@@ -32,5 +32,10 @@ class Events(commands.Cog):
             channel_out = self.Layla.get_channel(channel_id)
             await channel_out.send(f"{member.mention} Se ha ido al servidor")
 
+    @commands.Cog.listener()
+    async def on_command_error(self, ctx, error):
+        if isinstance(error, discord.HTTPException):
+            await ctx.send("Ocurrió un error al intentar conectarse a Discord. Inténtalo de nuevo más tarde.")
+
 async def setup(Layla):
     await Layla.add_cog(Events(Layla))

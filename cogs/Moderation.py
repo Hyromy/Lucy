@@ -14,7 +14,10 @@ class Moderation(commands.Cog):
     @clear.error
     async def clear_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
-            await ctx.send("No tienes permiso para hacer eso")
+            await ctx.send("Necesitas permisos de `Gestionar Mensajes` para hacer eso.")
+
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send("Comando invalido, requiere argumentos adicionales. `clear <cantidad>`\n`<argumento>` Obligatorio")
 
     @commands.command()
     @commands.has_permissions(kick_members = True)
@@ -24,7 +27,10 @@ class Moderation(commands.Cog):
     @kick.error
     async def kick_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
-            await ctx.send("No tienes permiso para hacer eso")
+            await ctx.send("Necesitas permisos de `Expulsar Miembros` para hacer eso.")
+
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send("Comando invalido, requiere argumentos adicionales. `kick @<miembro> (motivo)`\n`<argumento>` Obligatorio\n`(argumento)` Opcional")
 
     @commands.command()
     @commands.has_permissions(ban_members = True)
@@ -34,7 +40,10 @@ class Moderation(commands.Cog):
     @ban.error
     async def ban_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
-            await ctx.send("No tienes permiso para hacer eso")
+            await ctx.send("Necesitas permisos de `Banear Miembros` para hacer eso.")
+
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send("Comando invalido, requiere argumentos adicionales. `ban @<miembro> (motivo)`\n`<argumento>` Obligatorio\n`(argumento)` Opcional")
 
     @commands.command(name = "unban")
     @commands.guild_only()
@@ -46,7 +55,10 @@ class Moderation(commands.Cog):
     @unban.error
     async def unban_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
-            await ctx.send("No tienes permiso para hacer eso")
+            await ctx.send("Necesitas permisos de `Banear Miembros` para hacer eso.")
+
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send("Comando invalido, requiere argumentos adicionales. `unban <id_miembro>`\n`<argumento>` Obligatorio")
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
@@ -76,7 +88,10 @@ class Moderation(commands.Cog):
     @setmuterole.error
     async def setmuterole_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
-            await ctx.send("No tienes permiso para hacer eso")
+            await ctx.send("Necesitas permisos de `Administrador` para hacer eso.")
+
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send("Comando invalido, requiere argumentos adicionales. `setmuterole @<rol>`\n`<argumento>` Obligatorio")
 
     @commands.command()
     @commands.has_permissions(administrator = True)
@@ -97,7 +112,7 @@ class Moderation(commands.Cog):
     @removemuterole.error
     async def setmuterole_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
-            await ctx.send("No tienes permiso para hacer eso")
+            await ctx.send("Necesitas permisos de `Administrador` para hacer eso.")
 
     @commands.command()
     @commands.has_permissions(manage_roles = True)
@@ -118,7 +133,10 @@ class Moderation(commands.Cog):
     @mute.error
     async def mute_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
-            await ctx.send("No tienes permiso para hacer eso")
+            await ctx.send("Necesitas permisos de `Gestionar Roles` para hacer eso.")
+
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send("Comando invalido, requiere argumentos adicionales. `mute @<miembro>`\n`<argumento>` Obligatorio")
 
     @commands.command()
     @commands.has_permissions(manage_roles = True)
@@ -139,7 +157,10 @@ class Moderation(commands.Cog):
     @unmute.error
     async def mute_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
-            await ctx.send("No tienes permiso para hacer eso")
+            await ctx.send("Necesitas permisos de `Gestionar Roles` para hacer eso.")
+
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send("Comando invalido, requiere argumentos adicionales. `unmute @<miembro>`\n`<argumento>` Obligatorio")
 
 async def setup(Layla):
     await Layla.add_cog(Moderation(Layla))

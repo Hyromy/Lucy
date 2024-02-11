@@ -28,7 +28,7 @@ class Configuration(commands.Cog):
 
     @commands.command()
     @commands.has_permissions(administrator = True)
-    async def prefix(self, ctx, new_prefix:str):
+    async def setprefix(self, ctx, new_prefix:str):
         with open("./json/prefixes.json", "r") as f:
             prefix = json.load(f)
 
@@ -38,14 +38,17 @@ class Configuration(commands.Cog):
             json.dump(prefix, f, indent = 4)
 
         await ctx.send(f"Prefijo cambiado a {new_prefix}")  
-    @prefix.error
+    @setprefix.error
     async def prefix_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
-            await ctx.send("No tienes permisos para hacer eso")
+            await ctx.send("Necesitas permisos de `Administrador` para hacer eso.")
+
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send("Comando invalido, requiere argumentos adicionales. `setprefix <prefijo>`\n`<argumento>` Obligatorio")
 
     @commands.command()
     @commands.has_permissions(administrator = True)
-    async def log(self, ctx, set_log:int):
+    async def setlog(self, ctx, set_log:int):
         with open("./json/log_channels.json", "r") as f:
             log = json.load(f)
         
@@ -56,14 +59,17 @@ class Configuration(commands.Cog):
 
         await ctx.send(f"Canal de depuración establecido a <#{set_log}>")
         await ctx.send(f"{log[str(ctx.guil.id)]}: {log[str(ctx.channel.id)]}")
-    @log.error
+    @setlog.error
     async def log_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
-            await ctx.send("No tienes permisos para hacer eso")
+            await ctx.send("Necesitas permisos de `Administrador` para hacer eso.")
+
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send("Comando invalido, requiere argumentos adicionales. `setlog <id_canal>`\n`<argumento>` Obligatorio")
 
     @commands.command()
     @commands.has_permissions(administrator = True)
-    async def logremove(self, ctx):
+    async def removelog(self, ctx):
         with open("./json/log_channels.json", "r") as f:
             log = json.load(f)
 
@@ -77,11 +83,11 @@ class Configuration(commands.Cog):
             json.dump(log, f, indent = 4)
 
         await ctx.send("Canal de depuración eliminado")
-    @logremove.error
+    @removelog.error
     async def logremove_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
-            await ctx.send("No tienes permisos para hacer eso")
-    
+            await ctx.send("Necesitas permisos de `Administrador` para hacer eso.")
+
     @commands.command()
     @commands.has_permissions(administrator = True)
     async def logtest(self, ctx, *, message):
@@ -98,7 +104,10 @@ class Configuration(commands.Cog):
     @logtest.error
     async def logtest_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
-            await ctx.send("No tienes permisos para hacer eso")
+            await ctx.send("Necesitas permisos de `Administrador` para hacer eso.")
+
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send("Comando invalido, requiere argumentos adicionales. `setlog <id_canal>`\n`<argumento>` Obligatorio")
 
 async def setup(Layla):
     await Layla.add_cog(Configuration(Layla))
