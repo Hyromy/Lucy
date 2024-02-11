@@ -10,6 +10,7 @@ def get_prefix_server(Layla, message):
     return prefix.get(str(message.guild.id))
 
 Layla = commands.Bot(command_prefix = get_prefix_server, intents = discord.Intents.all())
+Layla.remove_command("help")
 
 @Layla.event
 async def on_ready():

@@ -9,6 +9,8 @@ class Moderation(commands.Cog):
     @commands.command()
     @commands.has_permissions(manage_messages = True)
     async def clear(self, ctx, amount:int):
+        """Borra una cantidad especifica de mensajes en el canal"""
+
         await ctx.channel.purge(limit = amount)
         await ctx.send(f"{amount} mensajes eliminados")
     @clear.error
@@ -22,6 +24,8 @@ class Moderation(commands.Cog):
     @commands.command()
     @commands.has_permissions(kick_members = True)
     async def kick(self, ctx, member:discord.Member, reason = None):
+        """Expulsa a un miembro del servidor"""
+
         await ctx.guild.kick(member)
         await ctx.send(f"<@{member.id}> Fue explulsado")
     @kick.error
@@ -35,6 +39,8 @@ class Moderation(commands.Cog):
     @commands.command()
     @commands.has_permissions(ban_members = True)
     async def ban(self, ctx, member:discord.Member, reason = None):
+        """Banea a un miembro del servidor"""
+
         await ctx.guild.ban(member)
         await ctx.send(f"<@{member.id}> Fue baneado")
     @ban.error
@@ -49,6 +55,8 @@ class Moderation(commands.Cog):
     @commands.guild_only()
     @commands.has_permissions(ban_members = True)
     async def unban(self, ctx, user_id):
+        """Retira el baneo de un usuario en el servidor"""
+
         user = discord.Object(id = user_id)
         await ctx.guild.unban(user)
         await ctx.send(f"<@{user_id}> ya no esta baneado")
@@ -76,6 +84,8 @@ class Moderation(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator = True)
     async def setmuterole(self, ctx, role:discord.Role):
+        """Establece un rol que se usara para mutear a un miembro"""
+
         with open("./json/mute_roles.json", "r") as f:
             mute_role = json.load(f)
 
@@ -96,6 +106,8 @@ class Moderation(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator = True)
     async def removemuterole(self, ctx):
+        """Retira el rol asignado como mute"""
+
         with open("./json/mute_roles.json", "r") as f:
             mute_role = json.load(f)
 
@@ -117,6 +129,8 @@ class Moderation(commands.Cog):
     @commands.command()
     @commands.has_permissions(manage_roles = True)
     async def mute(self, ctx, member:discord.Member):
+        """Mutea a un miembro del servidor"""
+
         with open("./json/mute_roles.json", "r") as f:
             mute_roles = json.load(f)
 
@@ -141,6 +155,8 @@ class Moderation(commands.Cog):
     @commands.command()
     @commands.has_permissions(manage_roles = True)
     async def unmute(self, ctx, member:discord.Member):
+        """Retira el mute de un miembro en el servidor"""
+
         with open("./json/mute_roles.json", "r") as f:
             mute_roles = json.load(f)
 

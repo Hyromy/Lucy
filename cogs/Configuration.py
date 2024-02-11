@@ -29,6 +29,8 @@ class Configuration(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator = True)
     async def setprefix(self, ctx, new_prefix:str):
+        """Establece un prefijo para el servidor"""
+
         with open("./json/prefixes.json", "r") as f:
             prefix = json.load(f)
 
@@ -49,6 +51,8 @@ class Configuration(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator = True)
     async def setlog(self, ctx, set_log:int):
+        """Establece un canal de depuracion para el bot"""
+
         with open("./json/log_channels.json", "r") as f:
             log = json.load(f)
         
@@ -70,6 +74,8 @@ class Configuration(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator = True)
     async def removelog(self, ctx):
+        """Retira el canal de depuracion para el bot"""
+
         with open("./json/log_channels.json", "r") as f:
             log = json.load(f)
 
@@ -91,6 +97,8 @@ class Configuration(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator = True)
     async def logtest(self, ctx, *, message):
+        """Envia un mensaje de prueba al canal de depuración establecido"""
+
         with open("./json/log_channels.json", "r") as f:
             log = json.load(f)
 
