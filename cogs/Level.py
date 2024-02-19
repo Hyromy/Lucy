@@ -28,7 +28,7 @@ class Level(commands.Cog):
             with open("./json/users.json", "w") as f:
                 json.dump(self.users, f, indent = 4)
 
-            await asyncio.sleep(5)
+            await asyncio.sleep(15)
 
     @commands.Cog.listener()
     async def on_message(self, message):

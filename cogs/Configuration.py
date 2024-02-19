@@ -26,20 +26,18 @@ class Configuration(commands.Cog):
         with open("./json/prefixes.json", "w") as f:
             json.dump(prefix, f, indent = 4)
 
-    @commands.command()
-    @commands.has_permissions(administrator = True)
-    async def setprefix(self, ctx, new_prefix:str):
-        """Establece un prefijo para el servidor"""
-
+    @commands.hybrid_command(name="setprefix", description="Establece un prefijo para el servidor")
+    @commands.has_permissions(administrator=True)
+    async def setprefix(self, ctx, prefijo:str):
         with open("./json/prefixes.json", "r") as f:
             prefix = json.load(f)
 
-        prefix[str(ctx.guild.id)] = new_prefix
+        prefix[str(ctx.guild.id)] = prefijo
 
         with open("./json/prefixes.json", "w") as f:
             json.dump(prefix, f, indent = 4)
 
-        await ctx.send(f"Prefijo cambiado a {new_prefix}")  
+        await ctx.send(f"Prefijo cambiado a {prefijo}")  
     @setprefix.error
     async def prefix_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
@@ -48,20 +46,18 @@ class Configuration(commands.Cog):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Comando invalido, requiere argumentos adicionales. `setprefix <prefijo>`\n`<argumento>` Obligatorio")
 
-    @commands.command()
-    @commands.has_permissions(administrator = True)
-    async def setlog(self, ctx, set_log:int):
-        """Establece un canal de depuracion para el bot"""
-
+    @commands.hybrid_command(name="setlog", description="Establece un canal de depuracion para el bot")
+    @commands.has_permissions(administrator=True)
+    async def setlog(self, ctx, id_canal:int):
         with open("./json/log_channels.json", "r") as f:
             log = json.load(f)
         
-        log[str(ctx.guild.id)] = set_log
+        log[str(ctx.guild.id)] = id_canal
 
         with open("./json/log_channels.json", "w") as f:
             json.dump(log, f, indent = 4)
 
-        await ctx.send(f"Canal de depuración establecido a <#{set_log}>")
+        await ctx.send(f"Canal de depuración establecido a <#{id_canal}>")
         await ctx.send(f"{log[str(ctx.guil.id)]}: {log[str(ctx.channel.id)]}")
     @setlog.error
     async def log_error(self, ctx, error):
@@ -71,11 +67,9 @@ class Configuration(commands.Cog):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Comando invalido, requiere argumentos adicionales. `setlog <id_canal>`\n`<argumento>` Obligatorio")
 
-    @commands.command()
-    @commands.has_permissions(administrator = True)
+    @commands.hybrid_command(name="removelog", description="Retira el canal de depuracion para el bot")
+    @commands.has_permissions(administrator=True)
     async def removelog(self, ctx):
-        """Retira el canal de depuracion para el bot"""
-
         with open("./json/log_channels.json", "r") as f:
             log = json.load(f)
 
@@ -94,11 +88,9 @@ class Configuration(commands.Cog):
         if isinstance(error, commands.MissingPermissions):
             await ctx.send("Necesitas permisos de `Administrador` para hacer eso.")
 
-    @commands.command()
-    @commands.has_permissions(administrator = True)
-    async def logtest(self, ctx, *, message):
-        """Envia un mensaje de prueba al canal de depuración establecido"""
-
+    @commands.hybrid_command(name="msglog", description="Envia un mensaje de prueba al canal de depuración establecido")
+    @commands.has_permissions(administrator=True)
+    async def msglog(self, ctx, *, mensaje):
         with open("./json/log_channels.json", "r") as f:
             log = json.load(f)
 
@@ -108,9 +100,9 @@ class Configuration(commands.Cog):
             return
         
         channel_out = self.Layla.get_channel(channel_id)
-        await channel_out.send(message)
-    @logtest.error
-    async def logtest_error(self, ctx, error):
+        await channel_out.send(mensaje)
+    @msglog.error
+    async def msglog_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
             await ctx.send("Necesitas permisos de `Administrador` para hacer eso.")
 

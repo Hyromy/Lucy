@@ -1,21 +1,71 @@
 import discord
 from discord.ext import commands
-import random, json
-from data.config import VERSION, NEXT_LEVEL
+from discord.ui import View, Select
+import json, random
+from data.config import *
+
+class HelpSelect(Select):
+    def __init__(self, Layla:commands.Bot):
+        super().__init__(
+            placeholder = "Escoje una categoria",
+            options = [
+                discord.SelectOption(
+                    label = cog_name, description = cog.__doc__
+                ) for cog_name, cog in Layla.cogs.items() if cog.__cog_commands__ and cog_name not in ["Jishaku"]
+            ]
+        )
+
+        self.Layla = Layla
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        cog = self.Layla.get_cog(self.values[0])
+        assert cog
+
+        commands_mixer = []
+        for i in cog.walk_commands():
+            commands_mixer.append(i)
+
+        for i in cog.walk_app_commands():
+            commands_mixer.append(i)
+
+        embed = discord.Embed(
+            title = f"Commandos {cog.__cog_name__}",
+            description = "\n".join(
+                f"**{command.name}**: {command.description}"
+                for command in commands_mixer
+            )
+        )
+
+        await interaction.response.send_message(
+            embed = embed,
+            ephemeral = True
+        )
 
 class Commands(commands.Cog):
     def __init__(self, Layla):
         self.Layla = Layla
 
-    @commands.command()
-    async def ping(self, ctx):
-        """Mide la latencia del bot"""
-        latencia = round(self.Layla.latency * 1000)
-        await ctx.send(f"Pong! {latencia}ms")
+    @commands.Cog.listener()
+    async def on_ready(self):
+        await self.Layla.tree.sync()
 
-    @commands.command(aliases = ["8", "8ball"])
-    async def ball(self, ctx, *, question):
-        """Haz una pregunta y sera respondida"""
+    @commands.hybrid_command(name="help", aliases=["h", "H"],description="Muestra la lista de comandos disponibles")
+    async def help(self, ctx):
+        embed = discord.Embed(title = "Comando help")
+        view = View().add_item(HelpSelect(self.Layla))
+        await ctx.send(embed = embed, view = view)
+
+    @commands.hybrid_command(name="ping", description="Mide la latencia del bot en milisegundos")
+    async def ping(self, ctx):
+        lat = round(self.Layla.latency * 1000)
+        await ctx.send(f"Pong! {lat}ms")
+
+    @commands.hybrid_command(name="echo", description="Repite lo que digas")
+    async def echo(self, ctx, *, mensaje):
+        await ctx.send(mensaje)
+
+    @commands.hybrid_command(name="8ball", aliases=["8ball", "8", "ball"], description="Haz una pregunta y será respondida")
+    async def ball(self, ctx, *, pregunta):
         with open("./data/ball.txt", "r") as f:
             respuestas = f.readlines()
             respuesta = random.choice(respuestas)
@@ -25,11 +75,10 @@ class Commands(commands.Cog):
     async def ball_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Comando invalido, requiere argumentos adicionales. `ball <pregunta>`\n`<argumento>` Obligatorio")
-
-    @commands.command()
-    async def tell(self, ctx, user:discord.Member, *, message):
-        """Envia un mensaje secreto a un destinatario especificado"""
-        embed = discord.Embed(title = None, description = message, color = 0x00bbff)
+ 
+    @commands.hybrid_command(name="tell", description="Envia un mensaje secreto a un destinatario especificado")
+    async def tell(self, ctx, usuario:discord.Member, *, mensaje):
+        embed = discord.Embed(title = None, description = mensaje, color = 0x00bbff)
 
         author = f"{ctx.author.display_name} te ha dicho:"
         usuario_url = f"https://discord.com/users/{ctx.author.id}"
@@ -37,66 +86,61 @@ class Commands(commands.Cog):
         embed.set_footer(text = f"Versión: {VERSION}")
 
         await ctx.message.delete()
-        await user.send(embed = embed)
+        await usuario.send(embed = embed)
     @tell.error
     async def tell_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.message.delete()
             await ctx.author.send("Comando invalido, requiere argumentos adicionales. `tell @<miembro> <mensaje>`\n`<argumento>` Obligatorio")
 
-    @commands.command()
-    async def level(self, ctx, member:discord.Member = None):
-        """Consulta tu nivel de usuario"""
-        if member is None:
-            member = ctx.author
+    @commands.hybrid_command(name="avatar", description="Envia el avatar de un usuario (en caso de no especificar el usuario devolverá tu avatar)")
+    async def avatar(self, ctx, usuario:discord.Member=None):
+        if usuario is None:
+            usuario = ctx.author
+
+        embed = discord.Embed(title=f"Avatar de {usuario.display_name}", color = 0x00bbff)
+        embed.set_image(url = usuario.avatar.url)
+        embed.set_footer(text = f"Pedido por {usuario.name}", icon_url=usuario.avatar)
+
+        await ctx.send(embed=embed)
+
+    @commands.hybrid_command(name="userinfo", description="Información detallada de usuario")
+    async def userinfo(self, ctx, usuario:discord.Member=None):
+        if usuario is None:
+            usuario = ctx.author
+
+        embed = discord.Embed(title = f"Informacion de {usuario.name}", color = 0x00bbff)
+        embed.set_thumbnail(url = usuario.avatar)
+        embed.add_field(name = "", value = f"**Nombre**: {usuario.name}", inline = False)
+        embed.add_field(name = "", value = f"**Nickname**: {usuario.display_name}", inline = False)
+        embed.add_field(name = "", value = f"**Discriminador**: {usuario.discriminator}", inline = False)
+        embed.add_field(name = "", value = f"**ID**: {usuario.id}", inline = False)
+        embed.add_field(name = "", value = f"**Status**: {usuario.status}", inline = False)
+        embed.add_field(name = "", value = f"**Bot**: {usuario.bot}", inline = False)
+        embed.add_field(name = "", value = f"**Fecha de creacion**: {usuario.created_at}", inline = False)
+        embed.add_field(name = "", value = f"**Se unió en**: {usuario.joined_at}", inline = False)
+        embed.set_footer(text = f"Pedido por {ctx.author.display_name}", icon_url = ctx.author.avatar)
+        
+        await ctx.send(embed = embed)
+
+    @commands.hybrid_command(name="level", aliases=["lv"], description="Consulta el nivel de un usuario (en caso de no especificar el usuario devolverá tu nivel)")
+    async def level(self, ctx, usuario:discord.Member = None):
+        if usuario is None:
+            usuario = ctx.author
         
         with open("./json/users.json", "r") as f:
             users_level = json.load(f)
 
         try:
-            level = users_level[f"{member.id}"]["Lvl"]
-            exp = users_level[f"{member.id}"]["Exp"]
-            await ctx.send(f"{member.mention} Nv.{level}\n{exp} / {NEXT_LEVEL(level)}exp.")
+            level = users_level[f"{usuario.id}"]["Lvl"]
+            exp = users_level[f"{usuario.id}"]["Exp"]
+            await ctx.send(f"{usuario.mention} Nv.{level}\n{exp} / {NEXT_LEVEL(level)}exp.")
         except KeyError:
-            await ctx.send(f"No tengo registros de {member.mention}")
+            await ctx.send(f"No tengo registros de {usuario.mention}")
 
-    @commands.command(aliases = ["h"])
-    async def help(self, ctx, text:str = None):
-        """Comando de informacion"""        
-        categorias, comandos = 0, 0
-        cog_name = []
-
-        for cog in self.Layla.cogs.values():
-            commands = cog.get_commands()
-            if len(commands) == 0:
-                continue
-            cog_name.append(f"{cog.__class__.__name__}")
-            categorias += 1
-            comandos += len(commands)
-
-        if text is None:
-            embed = discord.Embed(color = 0x00bbff, title = f"{categorias} categorias disponibles con {comandos} comandos", description = "Escribe `help <categoria>`\npara conocer los comandos de esa categoria")
-            embed.set_author(name = f"Commandos de {ctx.bot.user.name}", icon_url = ctx.bot.user.avatar)
-
-            for i in cog_name:
-                embed.add_field(name = i, value = "", inline = False)
-        else:
-            text = text.capitalize()
-            if text not in cog_name:
-                await ctx.send("Categoria no encontrada")
-                return
-
-            embed = discord.Embed(color = 0x00bbff, title = f"Commandos de {text}", description = "")
-            embed.set_author(name = f"Commandos de {ctx.bot.user.name}", icon_url = ctx.bot.user.avatar)
-
-            for cog in self.Layla.cogs.values():
-                if cog.__class__.__name__ == text:
-                    commands = cog.get_commands()
-                    break
-            for command in commands:
-                embed.add_field(name=command.name, value=command.help, inline=False)
-
-        await ctx.send(embed = embed)
+    @commands.hybrid_command(name="current", description="Tarea de desarrollo en proceso")
+    async def current(self, ctx):
+        await ctx.send("**Tarea actual**\nNinguna")
 
 async def setup(Layla):
     await Layla.add_cog(Commands(Layla))

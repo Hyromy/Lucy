@@ -20,7 +20,7 @@ class Events(commands.Cog):
         channel_id = log.get(str(member.guild.id))
         if channel_id is not None:
             channel_out = self.Layla.get_channel(channel_id)
-            await channel_out.send(f"{member.mention} Se ha unido al servidor")
+            await channel_out.send(f"{member.name} Se ha unido al servidor")
 
     @commands.Cog.listener()
     async def on_member_remove(self, member):
@@ -30,7 +30,7 @@ class Events(commands.Cog):
         channel_id = log.get(str(member.guild.id))
         if channel_id is not None:
             channel_out = self.Layla.get_channel(channel_id)
-            await channel_out.send(f"{member.mention} Se ha ido al servidor")
+            await channel_out.send(f"{member.name} Se ha ido al servidor")
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
