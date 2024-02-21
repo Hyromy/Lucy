@@ -5,6 +5,7 @@ import json
 class Moderation(commands.Cog):
     def __init__(self, Layla):
         self.Layla = Layla
+        Moderation.__doc__="Moderación y control"
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):

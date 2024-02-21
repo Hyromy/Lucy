@@ -5,6 +5,7 @@ import json
 class Configuration(commands.Cog):
     def __init__(self, Layla):
         self.Layla = Layla
+        Configuration.__doc__="Configuración del bot"
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):

@@ -6,6 +6,7 @@ from data.config import NEXT_LEVEL
 class Level(commands.Cog):
     def __init__(self, Layla):
         self.Layla = Layla
+        Level.__doc__="Sistema de niveles de usuario"
         self.Layla.loop.create_task(self.save())
         with open("./json/users.json", "r") as f:
             self.users = json.load(f)

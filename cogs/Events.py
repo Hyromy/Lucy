@@ -5,6 +5,7 @@ import json
 class Events(commands.Cog):
     def __init__(self, Layla):
         self.Layla = Layla
+        Events.__doc__="Escucha de eventos"
 
     @commands.Cog.listener()
     async def on_message(self, message):
