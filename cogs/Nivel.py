@@ -3,10 +3,10 @@ from discord.ext import commands
 import json, asyncio, random, math
 from data.config import NEXT_LEVEL
 
-class Level(commands.Cog):
+class Nivel(commands.Cog):
     def __init__(self, Layla):
         self.Layla = Layla
-        Level.__doc__="Sistema de niveles de usuario"
+        Nivel.__doc__="Sistema de niveles de usuario"
         self.Layla.loop.create_task(self.save())
         with open("./json/users.json", "r") as f:
             self.users = json.load(f)
@@ -47,4 +47,4 @@ class Level(commands.Cog):
                 await message.author.send(f"Felicidades, subiste a nivel {level}.")
 
 async def setup(Layla):
-    await Layla.add_cog(Level(Layla))
+    await Layla.add_cog(Nivel(Layla))

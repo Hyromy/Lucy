@@ -2,10 +2,10 @@ import discord
 from discord.ext import commands
 import json
 
-class Configuration(commands.Cog):
+class Configuracion(commands.Cog):
     def __init__(self, Layla):
         self.Layla = Layla
-        Configuration.__doc__="Configuración del bot"
+        Configuracion.__doc__="Configuración del bot"
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
@@ -89,6 +89,22 @@ class Configuration(commands.Cog):
         if isinstance(error, commands.MissingPermissions):
             await ctx.send("Necesitas permisos de `Administrador` para hacer eso.")
 
+    @commands.hybrid_command(name = "log", description = "Muestra el canal de depuración establecido en el servidor")
+    @commands.has_permissions(administrator=True)
+    async def log(self, ctx):
+        with open("./json/log_channels.json", "r") as f:
+            log = json.load(f)
+
+        channel_id = log.get(str(ctx.guild.id))
+        if channel_id is None:
+            await ctx.send("Aun no hay un canal de depuración configurado.\nConfigura uno con `setlog <id canal>`")
+        else:
+            await ctx.send(f"El canal de depuración es <#{channel_id}>")
+    @log.error
+    async def log_error(self, ctx, error):
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send("Necesitas permisos de `Administrador` para hacer eso.")
+
     @commands.hybrid_command(name="msglog", description="Envia un mensaje de prueba al canal de depuración establecido")
     @commands.has_permissions(administrator=True)
     async def msglog(self, ctx, *, mensaje):
@@ -97,7 +113,7 @@ class Configuration(commands.Cog):
 
         channel_id = log.get(str(ctx.guild.id))
         if channel_id is None:
-            await ctx.send(f"Aun no hay un canal de depuración configurado.\nConfigura uno con `log <id canal>`")
+            await ctx.send(f"Aun no hay un canal de depuración configurado.\nConfigura uno con `setlog <id canal>`")
             return
         
         channel_out = self.Layla.get_channel(channel_id)
@@ -111,4 +127,4 @@ class Configuration(commands.Cog):
             await ctx.send("Comando invalido, requiere argumentos adicionales. `setlog <id_canal>`\n`<argumento>` Obligatorio")
 
 async def setup(Layla):
-    await Layla.add_cog(Configuration(Layla))
+    await Layla.add_cog(Configuracion(Layla))

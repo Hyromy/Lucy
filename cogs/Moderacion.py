@@ -2,10 +2,10 @@ import discord
 from discord.ext import commands
 import json
 
-class Moderation(commands.Cog):
+class Moderacion(commands.Cog):
     def __init__(self, Layla):
         self.Layla = Layla
-        Moderation.__doc__="Moderación y control"
+        Moderacion.__doc__="Moderación y control"
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
@@ -23,9 +23,16 @@ class Moderation(commands.Cog):
     """Es lento"""
     @commands.hybrid_command(name="clear", description="Borra una cantidad especifica de mensajes en el canal")
     @commands.has_permissions(manage_messages=True)
-    async def clear(self, ctx, cantidad:int):
-        await ctx.channel.purge(limit=cantidad)
-        await ctx.send(f"{cantidad} mensajes eliminados")
+    async def clear(self, ctx:commands.Context, cantidad:int):
+        target = cantidad
+        await ctx.channel.purge(limit = cantidad)
+
+        """ while cantidad > 0:
+            batch_size = min(cantidad, 10)
+            await ctx.channel.purge(limit = batch_size)
+            cantidad -= batch_size
+        """
+        await ctx.send(f"{target} mensajes eliminados")
     @clear.error
     async def clear_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
@@ -93,6 +100,23 @@ class Moderation(commands.Cog):
 
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Comando invalido, requiere argumentos adicionales. `setmuterole @<rol>`\n`<argumento>` Obligatorio")
+
+    @commands.hybrid_command(name = "muterole", description = "Muestra el rol de mute establecido del servidor")
+    @commands.has_permissions(administrator=True)
+    async def muterole(self, ctx:commands.Context):
+        with open ("./json/mute_roles.json", "r") as f:
+            data = json.load(f)
+
+        rol_name = data.get(str(ctx.guild.id))
+        if rol_name is None:
+            await ctx.send("Aun no hay un rol de mute configurado.\nConfigura uno con `setmute <rol>`")
+        else:
+            rol = discord.utils.get(ctx.guild.roles, name = rol_name)
+            await ctx.send(f"El rol mute es {rol.mention}")
+    @muterole.error
+    async def muterole_error(self, ctx, error):
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send("Necesitas permisos de `Administrador` para hacer eso.")
 
     @commands.hybrid_command(name="removemute", description="Retira el rol asignado como mute")
     @commands.has_permissions(administrator=True)
@@ -164,4 +188,4 @@ class Moderation(commands.Cog):
             await ctx.send("Comando invalido, requiere argumentos adicionales. `unmute @<miembro>`\n`<argumento>` Obligatorio")
 
 async def setup(Layla):
-    await Layla.add_cog(Moderation(Layla))
+    await Layla.add_cog(Moderacion(Layla))

@@ -4,14 +4,20 @@ import random
 
 status = discord.Status.idle
 
-class Status(commands.Cog):
+class Precencia(commands.Cog):
     def __init__(self, Layla):
         self.Layla = Layla
-        Status.__doc__="Variabilidad de estados del bot"
+        Precencia.__doc__="Precencia del bot"
 
     @commands.Cog.listener()
     async def on_ready(self):
         self.newstatus.start()
+
+        try:
+            with open("data/Layla.gif", "rb") as avatar:
+                await self.Layla.user.edit(avatar = avatar.read())
+        except Exception as e:
+            print(f"    (!) Error al cargar icono animado: {e}")
 
     @tasks.loop(seconds=60)
     async def newstatus(self):
@@ -23,4 +29,4 @@ class Status(commands.Cog):
         await self.Layla.change_presence(status=status, activity=activity)
 
 async def setup(Layla):
-    await Layla.add_cog(Status(Layla))
+    await Layla.add_cog(Precencia(Layla))

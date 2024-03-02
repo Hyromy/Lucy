@@ -1,7 +1,9 @@
 import discord
+from discord import app_commands
 from discord.ext import commands
 from discord.ui import View, Select
-import json, random
+import json, random, numexpr
+from numpy import *
 from data.config import *
 
 class HelpSelect(Select):
@@ -42,10 +44,24 @@ class HelpSelect(Select):
             ephemeral = True
         )
 
-class Commands(commands.Cog):
+class BugReport(discord.ui.Modal, title = "Reportar bug"):
+    titulo = discord.ui.TextInput(label = "Titulo", placeholder = "Asunto del reporte",required = True, max_length = 50, style = discord.TextStyle.short)
+    descripcion = discord.ui.TextInput(label = "Descripción", placeholder = "Describe lo ocurrido (en la medida de lo posible da detalles)", required = True, max_length = 1000, style = discord.TextStyle.paragraph)
+
+    async def on_submit(self:commands.Bot, interaction:discord.Interaction):
+        channel_bug = interaction.guild.get_channel(BUG_CHANNEL)
+        
+        embed = discord.Embed(title = self.titulo, color = 0x00bbff)
+        embed.add_field(name = "Descripción del bug", value = self.descripcion)
+        embed.set_footer(text = f"Reportado por {interaction.user.name}", icon_url = interaction.user.avatar)
+        await channel_bug.send(embed = embed)
+
+        await interaction.response.send_message(f"{interaction.user.mention} Gracias por reportar el bug. Este será corregido en futuras versiones", ephemeral = True)
+
+class Comandos(commands.Cog):
     def __init__(self, Layla):
         self.Layla = Layla
-        Commands.__doc__ = "Comandos varios"
+        Comandos.__doc__ = "Comandos varios"
 
     @commands.hybrid_command(name="help", aliases=["h", "H"],description="Muestra la lista de comandos disponibles")
     async def help(self, ctx):
@@ -170,9 +186,26 @@ class Commands(commands.Cog):
         except KeyError:
             await ctx.send(f"No tengo registros de {usuario.mention}")
 
+    @commands.command(name = "calculate", aliases = ["calc", "math"], description = "Resuelve una expresion algebráica")
+    async def calculate(self, ctx, *, expresion):
+        try:
+            respuesta = numexpr.evaluate(expresion)
+            await ctx.send(f"{expresion} = {respuesta}")
+        except:
+            await ctx.send("Expresión no valida")
+
+    @app_commands.command(name = "bug", description = "Reportar un bug o inconsistencia del bot")
+    async def bug(self, interaction:discord.Interaction):
+        if (interaction.guild_id != HOME):
+            await interaction.response.send_message(content = "Desafortunadamente, solo se pueden reportar bugs desde el servidor donde fui creada. Por favor, dirígete al servidor de desarrollo o contacta con <@608870766586494976> para reportar el bug. Disculpa las molestias." +
+                                                    "\nhttps://discord.gg/85hexN9TyM",
+                                                    ephemeral = True)
+        else:
+            await interaction.response.send_modal(BugReport())
+
     @commands.command(name="current", description="Tarea de desarrollo en proceso")
     async def current(self, ctx):
-        await ctx.send("**Tarea actual**\nVerificar integridad")
+        await ctx.send("**Tarea actual**\nReestructurar")
 
 async def setup(Layla):
-    await Layla.add_cog(Commands(Layla))
+    await Layla.add_cog(Comandos(Layla))
