@@ -32,7 +32,7 @@ class HelpSelect(Select):
 
         embed = discord.Embed(
             color = 0x00bbff,
-            title = f"Commandos {cog.__cog_name__}",
+            title = f"{cog.__cog_name__}",
             description = "\n".join(
                 f"**{command.name}**: {command.description}"
                 for command in commands_mixer
@@ -158,7 +158,11 @@ class Comandos(commands.Cog):
         creado = ctx.guild.created_at.strftime("%d/%m/%Y")
         
         embed = discord.Embed(title = f"Informacion de {ctx.guild.name}", color = 0x00bbff)
-        embed.set_thumbnail(url = ctx.guild.icon.url)
+        
+        try:
+            embed.set_thumbnail(url = ctx.guild.icon.url)
+        except Exception:
+            pass
         embed.add_field(name="", value=f"**ID**: {ctx.guild.id}", inline=False)
         embed.add_field(name="", value=f"**Propietario**: {ctx.guild.owner.name}", inline=False)
         embed.add_field(name="", value=f"**Miembros**: {len(ctx.guild.members)}", inline=False)
@@ -197,8 +201,8 @@ class Comandos(commands.Cog):
     @app_commands.command(name = "bug", description = "Reportar un bug o inconsistencia del bot")
     async def bug(self, interaction:discord.Interaction):
         if (interaction.guild_id != HOME):
-            await interaction.response.send_message(content = "Desafortunadamente, solo se pueden reportar bugs desde el servidor donde fui creada. Por favor, dirígete al servidor de desarrollo o contacta con <@608870766586494976> para reportar el bug. Disculpa las molestias." +
-                                                    "\nhttps://discord.gg/85hexN9TyM",
+            await interaction.response.send_message(content = f"Desafortunadamente, solo se pueden reportar bugs desde el servidor donde fui creada. Por favor, dirígete al servidor de desarrollo o contacta con <@608870766586494976> para reportar el bug. Disculpa las molestias." +
+                                                    "https://discord.gg/85hexN9TyM",
                                                     ephemeral = True)
         else:
             await interaction.response.send_modal(BugReport())

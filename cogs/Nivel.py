@@ -29,7 +29,7 @@ class Nivel(commands.Cog):
             with open("./json/users.json", "w") as f:
                 json.dump(self.users, f, indent = 4)
 
-            await asyncio.sleep(15)
+            await asyncio.sleep(60)
 
     @commands.Cog.listener()
     async def on_message(self, message):

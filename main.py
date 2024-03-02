@@ -17,7 +17,7 @@ async def on_ready():
     await Layla.tree.sync()
 
     sp = 16
-    ready = f"{(" " * sp) + Layla.user.name} está lista{" " * sp}"
+    ready = f"{' ' * sp}{Layla.user.name} está lista{' ' * sp}"
     line = "-" * len(ready)
 
     print()

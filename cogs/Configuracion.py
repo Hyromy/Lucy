@@ -7,26 +7,6 @@ class Configuracion(commands.Cog):
         self.Layla = Layla
         Configuracion.__doc__="Configuración del bot"
 
-    @commands.Cog.listener()
-    async def on_guild_join(self, guild):
-        with open("./json/prefixes.json", "r") as f:
-            prefix = json.load(f)
-
-        prefix[str(guild.id)] = ","
-
-        with open("./json/prefixes.json", "w") as f:
-            json.dump(prefix, f, indent = 4)
-
-    @commands.Cog.listener()
-    async def on_guild_remove(self, guild):
-        with open("./json/prefixes.json", "r") as f:
-            prefix = json.load(f)
-
-        prefix.pop(str(guild.id))
-
-        with open("./json/prefixes.json", "w") as f:
-            json.dump(prefix, f, indent = 4)
-
     @commands.hybrid_command(name="setprefix", description="Establece un prefijo para el servidor")
     @commands.has_permissions(administrator=True)
     async def setprefix(self, ctx, prefijo:str):

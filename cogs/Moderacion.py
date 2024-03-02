@@ -7,20 +7,6 @@ class Moderacion(commands.Cog):
         self.Layla = Layla
         Moderacion.__doc__="Moderación y control"
 
-    @commands.Cog.listener()
-    async def on_guild_remove(self, guild):
-        with open("./json/mute_roles.json", "r") as f:
-            mute_role = json.load(f)
-
-        try:
-            mute_role.pop(str(guild.id))
-        except KeyError:
-            return
-
-        with open("./json/mute_roles.json", "w") as f:
-            mute_role = json.dump(mute_role, f, indent = 4)
-
-    """Es lento"""
     @commands.hybrid_command(name="clear", description="Borra una cantidad especifica de mensajes en el canal")
     @commands.has_permissions(manage_messages=True)
     async def clear(self, ctx:commands.Context, cantidad:int):
