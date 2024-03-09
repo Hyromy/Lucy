@@ -4,7 +4,7 @@ from discord.ext import commands
 import os, asyncio, json
 
 def get_prefix_server(Layla, message):
-    with open("json/prefixes.json", "r") as f:
+    with open("json/prefix.json", "r") as f:
         prefix = json.load(f)
 
     return prefix.get(str(message.guild.id))

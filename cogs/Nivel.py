@@ -7,8 +7,16 @@ class Nivel(commands.Cog):
     def __init__(self, Layla):
         self.Layla = Layla
         Nivel.__doc__="Sistema de niveles de usuario"
+
+        import os
+        user = "json/user.json"
+        if not os.path.exists(user) or os.path.getsize(user) == 0:
+            with open(user, "w") as f:
+                json.dump({}, f, indent = 4)
+
         self.Layla.loop.create_task(self.save())
-        with open("./json/users.json", "r") as f:
+        
+        with open(f"./{user}", "r") as f:
             self.users = json.load(f)
 
     def level_up(self, author_id):
@@ -26,10 +34,11 @@ class Nivel(commands.Cog):
     async def save(self):
         await self.Layla.wait_until_ready()
         while not self.Layla.is_closed():
-            with open("./json/users.json", "w") as f:
+            path = "json/user.json"
+            with open(f"./{path}", "w") as f:
                 json.dump(self.users, f, indent = 4)
 
-            await asyncio.sleep(60)
+            await asyncio.sleep(5)
 
     @commands.Cog.listener()
     async def on_message(self, message):

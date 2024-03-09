@@ -1,7 +1,9 @@
 import discord
-from discord.ext import commands
-import json, datetime
+from discord.ext import commands, tasks
+import json, datetime, os
 from data.config import VERSION, HOME
+
+default_prefix = ","
 
 class Eventos(commands.Cog):
     def __init__(self, Layla):
@@ -9,14 +11,66 @@ class Eventos(commands.Cog):
         Eventos.__doc__="Escucha de eventos"
 
     @commands.Cog.listener()
+    async def on_ready(self):
+        self.fix.start()
+
+    @tasks.loop(seconds = 1)
+    async def fix(self):
+        if not os.path.exists("json"):
+            time = datetime.datetime.now()
+            f_t = time.strftime("%d/%m/%Y - %H:%M:%S")
+            print(f"    (!) [{f_t}] carpeta json inexistente -> CREANDO")
+            os.makedirs("json")
+
+        prefix = "json/prefix.json"
+        if not os.path.exists(prefix) or os.path.getsize(prefix) == 0:
+            time = datetime.datetime.now()
+            f_t = time.strftime("%d/%m/%Y - %H:%M:%S")
+            print(f"    (!) [{f_t}] prefix corrupto -> REPARANDO")
+            
+            data = {}
+            with open(prefix, "w") as f:
+                for guild in self.Layla.guilds:
+                    data[str(guild.id)] = ","
+                json.dump(data, f, indent = 4)
+
+        log = "json/log_channel.json"
+        if not os.path.exists(log) or os.path.getsize(log) == 0:
+            time = datetime.datetime.now()
+            f_t = time.strftime("%d/%m/%Y - %H:%M:%S")
+            print(f"    (!) [{f_t}] log channel corrupto -> REPARANDO")
+
+            with open(log, "w") as f:
+                json.dump({}, f, indent = 4)
+
+        mute = "json/mute_rol.json"
+        if not os.path.exists(mute) or os.path.getsize(mute) == 0:
+            time = datetime.datetime.now()
+            f_t = time.strftime("%d/%m/%Y - %H:%M:%S")
+            print(f"    (!) [{f_t}] mute rol corrupto -> REPARANDO")
+
+            with open(mute, "w") as f:
+                json.dump({}, f, indent = 4)
+
+        user = "json/user.json"
+        if not os.path.exists(user) or os.path.getsize(user) == 0:
+            time = datetime.datetime.now()
+            f_t = time.strftime("%d/%m/%Y - %H:%M:%S")
+            print(f"    (!) [{f_t}] user corrupto -> REPARANDO")
+
+            with open(user, "w") as f:
+                json.dump({}, f, indent = 4)
+
+    @commands.Cog.listener()
     async def on_guild_join(self, guild):
-        try: #establecer prefijo por defecto
-            with open("./json/prefixes.json", "r") as f:
+        path = "json/prefix.json"
+        try: #establecer prefijo
+            with open(f"./{path}", "r") as f:
                 prefix = json.load(f)
 
-            prefix[str(guild.id)] = ","
+            prefix[str(guild.id)] = default_prefix
 
-            with open("./json/prefixes.json", "w") as f:
+            with open(f"./{path}", "w") as f:
                 json.dump(prefix, f, indent = 4)
         except Exception as e:
             time = datetime.datetime.now()
@@ -52,13 +106,14 @@ class Eventos(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
-        try: #eliminar registro rol de mute
-            with open("./json/mute_roles.json", "r") as f:
+        path = "json/mute_rol.json"
+        try: #eliminar registro rol mute
+            with open(f"./{path}", "r") as f:
                 mute_role = json.load(f)
 
                 mute_role.pop(str(guild.id))            
 
-            with open("./json/mute_roles.json", "w") as f:
+            with open(f"./{path}", "w") as f:
                 mute_role = json.dump(mute_role, f, indent = 4)
         except KeyError:
             pass
@@ -67,13 +122,14 @@ class Eventos(commands.Cog):
             f_t = time.strftime("%d/%m/%Y - %H:%M:%S")
             print(f"    (!) [{f_t}] Eliminar registro rol mute: {e}")
   
+        path = "json/prefix.json"
         try: #eliminar registro del prefijo
-            with open("./json/prefixes.json", "r") as f:
+            with open(f"./{path}", "r") as f:
                 prefix = json.load(f)
 
             prefix.pop(str(guild.id))
 
-            with open("./json/prefixes.json", "w") as f:
+            with open(f"./{path}", "w") as f:
                 json.dump(prefix, f, indent = 4)
         except Exception as e:
             time = datetime.datetime.now()
@@ -81,31 +137,23 @@ class Eventos(commands.Cog):
             print(f"    (!) [{f_t}] Eliminar registro del prefijo: {e}")
 
     @commands.Cog.listener()
-    async def on_member_join(self, member):
-        with open("./json/log_channels.json", "r") as f:
-            log = json.load(f)
-
-        channel_id = log.get(str(member.guild.id))
-        if channel_id is not None:
-            channel_out = self.Layla.get_channel(channel_id)
-            await channel_out.send(f"{member.name} Se ha unido al servidor")
-
-    @commands.Cog.listener()
-    async def on_member_remove(self, member):
-        with open("./json/log_channels.json", "r") as f:
-            log = json.load(f)
-
-        channel_id = log.get(str(member.guild.id))
-        if channel_id is not None:
-            channel_out = self.Layla.get_channel(channel_id)
-            await channel_out.send(f"{member.name} Se ha ido al servidor")
-
-
-    @commands.Cog.listener()
     async def on_message(self, message):
         if "prefix" in message.content.lower() and self.Layla.user.mention in message.content:
+            path = "json/prefix.json"
+            with open(f"./{path}", "r") as f:
+                data = json.load(f)
+
+            if str(message.guild.id) not in data:
+                time = datetime.datetime.now()
+                f_t = time.strftime("%d/%m/%Y - %H:%M:%S")
+                print(f"    (!) [{f_t}] prefix perdido -> REPARANDO")
+
+                data[str(message.guild.id)] = ","
+                with open(f"./{path}", "w") as f:
+                    json.dump(data, f, indent = 4)
+
             prefix = self.Layla.command_prefix(self.Layla, message)
-            await message.channel.send(f"El prefijo de este servidor es {prefix}")
+            await message.channel.send(f"El prefijo de este servidor es `{prefix}`")
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):

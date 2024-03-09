@@ -12,12 +12,6 @@ class Moderacion(commands.Cog):
     async def clear(self, ctx:commands.Context, cantidad:int):
         target = cantidad
         await ctx.channel.purge(limit = cantidad)
-
-        """ while cantidad > 0:
-            batch_size = min(cantidad, 10)
-            await ctx.channel.purge(limit = batch_size)
-            cantidad -= batch_size
-        """
         await ctx.send(f"{target} mensajes eliminados")
     @clear.error
     async def clear_error(self, ctx, error):
@@ -70,12 +64,13 @@ class Moderacion(commands.Cog):
     @commands.hybrid_command(name="setmute", description="Establece un rol (debe configurarse) que se usara para mutear a un miembro")
     @commands.has_permissions(administrator=True)
     async def setmute(self, ctx, rol:discord.Role):
-        with open("./json/mute_roles.json", "r") as f:
+        path = "json/mute_rol.json"
+        with open(f"./{path}", "r") as f:
             mute_role = json.load(f)
 
         mute_role[str(ctx.guild.id)] = rol.name
 
-        with open("./json/mute_roles.json", "w") as f:
+        with open(f"./{path}", "w") as f:
             mute_role = json.dump(mute_role, f, indent = 4)
 
         await ctx.send(f"Rol de muteo establecido para {rol.mention}")
@@ -90,7 +85,8 @@ class Moderacion(commands.Cog):
     @commands.hybrid_command(name = "muterole", description = "Muestra el rol de mute establecido del servidor")
     @commands.has_permissions(administrator=True)
     async def muterole(self, ctx:commands.Context):
-        with open ("./json/mute_roles.json", "r") as f:
+        path = "json/mute_rol.json"
+        with open (f"./{path}", "r") as f:
             data = json.load(f)
 
         rol_name = data.get(str(ctx.guild.id))
@@ -107,7 +103,8 @@ class Moderacion(commands.Cog):
     @commands.hybrid_command(name="removemute", description="Retira el rol asignado como mute")
     @commands.has_permissions(administrator=True)
     async def removemute(self, ctx):
-        with open("./json/mute_roles.json", "r") as f:
+        path = "json/mute_rol.json"
+        with open(f"./{path}", "r") as f:
             mute_role = json.load(f)
 
         try:
@@ -116,7 +113,7 @@ class Moderacion(commands.Cog):
             await ctx.send("No hay ningun rol para eliminar")
             return
 
-        with open("./json/mute_roles.json", "w") as f:
+        with open(f"./{path}", "w") as f:
             mute_role = json.dump(mute_role, f, indent = 4)
 
         await ctx.send(f"Rol de muteo eliminado")
@@ -128,7 +125,8 @@ class Moderacion(commands.Cog):
     @commands.hybrid_command(name="mute", description="Mutea a un miembro del servidor (requiere un rol establecido para ello)")
     @commands.has_permissions(manage_roles=True)
     async def mute(self, ctx, usuario:discord.Member):
-        with open("./json/mute_roles.json", "r") as f:
+        path = "json/mute_rol.json"
+        with open(f"./{path}", "r") as f:
             mute_roles = json.load(f)
 
         try:
@@ -152,7 +150,8 @@ class Moderacion(commands.Cog):
     @commands.hybrid_command(name="unmute", description="Retira el mute de un miembro en el servidor")
     @commands.has_permissions(manage_roles=True)
     async def unmute(self, ctx, usuario:discord.Member):
-        with open("./json/mute_roles.json", "r") as f:
+        path = "json/mute_rol.json"
+        with open(f"./{path}", "r") as f:
             mute_roles = json.load(f)
 
         try:

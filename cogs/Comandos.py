@@ -176,19 +176,20 @@ class Comandos(commands.Cog):
         await ctx.send(embed = embed)
 
     @commands.hybrid_command(name="level", aliases=["lv"], description="Consulta el nivel de un usuario (en caso de no especificar el usuario devolverá tu nivel)")
-    async def level(self, ctx, usuario:discord.Member = None):
+    async def level(self, ctx, usuario:discord.Member = None):        
         if usuario is None:
             usuario = ctx.author
         
-        with open("./json/users.json", "r") as f:
-            users_level = json.load(f)
+        with open("./json/user.json", "r") as f:
+            users = json.load(f)
 
         try:
-            level = users_level[f"{usuario.id}"]["Lvl"]
-            exp = users_level[f"{usuario.id}"]["Exp"]
+            level = users[f"{usuario.id}"]["Lvl"]
+            exp = users[f"{usuario.id}"]["Exp"]
+
             await ctx.send(f"{usuario.mention} Nv.{level}\n{exp} / {NEXT_LEVEL(level)}exp.")
         except KeyError:
-            await ctx.send(f"No tengo registros de {usuario.mention}")
+            await ctx.send(f"No tengo registros de **{usuario.display_name}**")
 
     @commands.command(name = "calculate", aliases = ["calc", "math"], description = "Resuelve una expresion algebráica")
     async def calculate(self, ctx, *, expresion):

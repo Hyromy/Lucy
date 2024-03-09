@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-import json
+import json, datetime
 
 class Configuracion(commands.Cog):
     def __init__(self, Layla):
@@ -10,15 +10,16 @@ class Configuracion(commands.Cog):
     @commands.hybrid_command(name="setprefix", description="Establece un prefijo para el servidor")
     @commands.has_permissions(administrator=True)
     async def setprefix(self, ctx, prefijo:str):
-        with open("./json/prefixes.json", "r") as f:
-            prefix = json.load(f)
+        path = "json/prefix.json"
+        with open(f"./{path}", "r") as f:
+            data = json.load(f)
 
-        prefix[str(ctx.guild.id)] = prefijo
+        data[str(ctx.guild.id)] = prefijo
 
-        with open("./json/prefixes.json", "w") as f:
-            json.dump(prefix, f, indent = 4)
+        with open(f"./{path}", "w") as f:
+            json.dump(data, f, indent = 4)
 
-        await ctx.send(f"Prefijo cambiado a {prefijo}")  
+        await ctx.send(f"Prefijo cambiado a `{prefijo}`")  
     @setprefix.error
     async def prefix_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
@@ -29,17 +30,17 @@ class Configuracion(commands.Cog):
 
     @commands.hybrid_command(name="setlog", description="Establece un canal de depuracion para el bot")
     @commands.has_permissions(administrator=True)
-    async def setlog(self, ctx, id_canal:int):
-        with open("./json/log_channels.json", "r") as f:
-            log = json.load(f)
+    async def setlog(self, ctx, canal:discord.TextChannel):
+        path = "json/log_channel.json"
+        with open(f"./{path}", "r") as f:
+            data = json.load(f)
         
-        log[str(ctx.guild.id)] = id_canal
+        data[str(ctx.guild.id)] = canal.id
 
-        with open("./json/log_channels.json", "w") as f:
-            json.dump(log, f, indent = 4)
+        with open(f"./{path}", "w") as f:
+            json.dump(data, f, indent = 4)
 
-        await ctx.send(f"Canal de depuración establecido a <#{id_canal}>")
-        await ctx.send(f"{log[str(ctx.guil.id)]}: {log[str(ctx.channel.id)]}")
+        await ctx.send(f"Canal de depuración establecido a {canal.mention}")
     @setlog.error
     async def log_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
@@ -51,7 +52,8 @@ class Configuracion(commands.Cog):
     @commands.hybrid_command(name="removelog", description="Retira el canal de depuracion para el bot")
     @commands.has_permissions(administrator=True)
     async def removelog(self, ctx):
-        with open("./json/log_channels.json", "r") as f:
+        path = "json/log_channel.json"
+        with open(f"./{path}", "r") as f:
             log = json.load(f)
 
         try:
@@ -60,7 +62,7 @@ class Configuracion(commands.Cog):
             await ctx.send("No hay ningun canal de depuración por eliminar")
             return
 
-        with open("./json/log_channels.json", "w") as f:
+        with open(f"./{path}", "w") as f:
             json.dump(log, f, indent = 4)
 
         await ctx.send("Canal de depuración eliminado")
@@ -72,12 +74,13 @@ class Configuracion(commands.Cog):
     @commands.hybrid_command(name = "log", description = "Muestra el canal de depuración establecido en el servidor")
     @commands.has_permissions(administrator=True)
     async def log(self, ctx):
-        with open("./json/log_channels.json", "r") as f:
+        path = "json/log_channel.json"
+        with open(f"./{path}", "r") as f:
             log = json.load(f)
 
         channel_id = log.get(str(ctx.guild.id))
         if channel_id is None:
-            await ctx.send("Aun no hay un canal de depuración configurado.\nConfigura uno con `setlog <id canal>`")
+            await ctx.send("Aun no hay un canal de depuración configurado.")
         else:
             await ctx.send(f"El canal de depuración es <#{channel_id}>")
     @log.error
@@ -88,12 +91,13 @@ class Configuracion(commands.Cog):
     @commands.hybrid_command(name="msglog", description="Envia un mensaje de prueba al canal de depuración establecido")
     @commands.has_permissions(administrator=True)
     async def msglog(self, ctx, *, mensaje):
-        with open("./json/log_channels.json", "r") as f:
+        path = "json/log_channel.json"
+        with open(f"./{path}", "r") as f:
             log = json.load(f)
 
         channel_id = log.get(str(ctx.guild.id))
         if channel_id is None:
-            await ctx.send(f"Aun no hay un canal de depuración configurado.\nConfigura uno con `setlog <id canal>`")
+            await ctx.send(f"Aun no hay un canal de depuración configurado.")
             return
         
         channel_out = self.Layla.get_channel(channel_id)

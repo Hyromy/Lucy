@@ -17,7 +17,7 @@ class Precencia(commands.Cog):
         
         self.newstatus.start()
 
-    @tasks.loop(seconds = 300)
+    @tasks.loop(seconds = 600)
     async def newstatus(self):
         with open("./data/status.txt", "r", encoding = "utf-8") as f:
             activities = f.readlines()
@@ -25,6 +25,7 @@ class Precencia(commands.Cog):
         name = random.choice(activities)
         activity = discord.Game(name = name)
         await self.Layla.change_presence(activity = activity)
+        #await self.Layla.change_presence(status = discord.Status.idle, activity = discord.Game("Experimentando"))
 
 async def setup(Layla):
     await Layla.add_cog(Precencia(Layla))
