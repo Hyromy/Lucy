@@ -6,7 +6,7 @@ from data.config import NEXT_LEVEL
 class Nivel(commands.Cog):
     def __init__(self, Layla):
         self.Layla = Layla
-        Nivel.__doc__="Sistema de niveles de usuario"
+        Nivel.__doc__ = "Sistema de niveles de usuario"
 
         import os
         user = "json/user.json"
@@ -35,10 +35,16 @@ class Nivel(commands.Cog):
         await self.Layla.wait_until_ready()
         while not self.Layla.is_closed():
             path = "json/user.json"
+            with open(f"./{path}", "r") as f:
+                data = json.load(f)
+
+            for user_id, items in data.items():
+                self.users[user_id]["Adv"] = items["Adv"]
+
             with open(f"./{path}", "w") as f:
                 json.dump(self.users, f, indent = 4)
 
-            await asyncio.sleep(5)
+            await asyncio.sleep(3)
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -48,12 +54,18 @@ class Nivel(commands.Cog):
                 self.users[author_id] = {}
                 self.users[author_id]["Lvl"] = 0
                 self.users[author_id]["Exp"] = 0
+                self.users[author_id]["Adv"] = True
 
             self.users[author_id]["Exp"] += random.randint(1, 5)
-
-            if self.level_up(author_id):
+            if self.level_up(author_id) and self.users[author_id]["Adv"]:
                 level = self.users[author_id]["Lvl"]
-                await message.author.send(f"Felicidades, subiste a nivel {level}.")
+                exp = NEXT_LEVEL(level)
+
+                embed = discord.Embed(title = f"Subida a nivel {level}", color = 0x00bbff)
+                embed.add_field(name = f"Felicidades has subido a nivel {level}", value = f"Para llegar al siguiente nivel necesitarás {exp}exp", inline = False)
+                embed.set_footer(text = f"Puedes desactivar estas notificaciones escribiendo 'level @{message.author.name} False'")
+
+                await message.author.send(embed = embed)
 
 async def setup(Layla):
     await Layla.add_cog(Nivel(Layla))

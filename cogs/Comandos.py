@@ -77,11 +77,18 @@ class Comandos(commands.Cog):
     @commands.hybrid_command(name="ping", description="Mide la latencia del bot en milisegundos")
     async def ping(self, ctx):
         lat = round(self.Layla.latency * 1000)
-        await ctx.send(f"Pong! {lat}ms")
+
+        embed = discord.Embed(title = "Ping",color = 0x00bbff)
+        embed.add_field(name = "Pong!", value = f"{lat}ms")
+
+        await ctx.send(embed = embed)
 
     @commands.hybrid_command(name="echo", description="Repite lo que digas")
     async def echo(self, ctx, *, mensaje):
-        await ctx.send(mensaje)
+        embed = discord.Embed(title = "Echo",color = 0x00bbff)
+        embed.add_field(name = "", value = mensaje)
+
+        await ctx.send(embed = embed)
 
     @commands.hybrid_command(name="8ball", aliases=["8", "ball"], description="Haz una pregunta y será respondida")
     async def ball(self, ctx, *, pregunta):
@@ -89,7 +96,10 @@ class Comandos(commands.Cog):
             respuestas = f.readlines()
             respuesta = random.choice(respuestas)
             
-        await ctx.send(respuesta)
+        embed = discord.Embed(title = "8Ball", color = 0x00bbff)
+        embed.add_field(name = pregunta, value = respuesta)
+
+        await ctx.send(embed = embed)
     @ball.error
     async def ball_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
@@ -118,10 +128,14 @@ class Comandos(commands.Cog):
             usuario = ctx.author
 
         embed = discord.Embed(title=f"Avatar de {usuario.display_name}", color = 0x00bbff)
-        embed.set_image(url=usuario.avatar.url)
+        try:
+            embed.set_image(url=usuario.avatar.url)
+        except Exception:
+            embed.add_field(name = "Avatar no disponible", value = "")
+        
         embed.set_footer(text=f"Pedido por {ctx.author.name}", icon_url=ctx.author.avatar)
 
-        await ctx.send(embed=embed)
+        await ctx.send(embed = embed)
 
     @commands.hybrid_command(name="userinfo", description="Información detallada de usuario")
     async def userinfo(self, ctx, usuario:discord.Member=None):
@@ -141,7 +155,12 @@ class Comandos(commands.Cog):
         unido = usuario.joined_at.strftime("%d/%m/%Y")
 
         embed = discord.Embed(title = f"Información de {usuario.name}", color = 0x00bbff)
-        embed.set_thumbnail(url = usuario.avatar)
+        
+        try:
+            embed.set_thumbnail(url = usuario.avatar)
+        except Exception:
+            pass
+        
         embed.add_field(name="", value=f"**Nombre**: {usuario.name}", inline=False)
         embed.add_field(name="", value=f"**Nickname**: {usuario.display_name}", inline=False)
         embed.add_field(name="", value=f"**Discriminador**: {usuario.discriminator}", inline=False)
@@ -176,28 +195,118 @@ class Comandos(commands.Cog):
         await ctx.send(embed = embed)
 
     @commands.hybrid_command(name="level", aliases=["lv"], description="Consulta el nivel de un usuario (en caso de no especificar el usuario devolverá tu nivel)")
-    async def level(self, ctx, usuario:discord.Member = None):        
+    async def level(self, ctx, usuario:discord.Member = None, avisos:bool = None):        
         if usuario is None:
             usuario = ctx.author
+
+        path = "json/user.json"
+        embed = discord.Embed(title = "Level", color = 0x00bbff)
+        try:
+            if usuario == ctx.author and avisos is not None:
+                with open(f"./{path}", "r") as f:
+                    data = json.load(f)
+
+                data[str(usuario.id)]["Adv"] = bool(avisos)
+
+                with open(f"./{path}", "w") as f:
+                    json.dump(data, f, indent = 4)
+
+                embed.add_field(name = f"Notificaciones para {usuario.display_name}", value = f"Las notificaciones de nivel se configuraron a `{avisos}`")
+                await ctx.send(embed = embed)
+                return
+            
+            elif usuario != ctx.author and avisos is not None:
+                embed.add_field(name = "", value = f"{ctx.author.display_name} No puedes configurar las notificaciones de los demás")
+                await ctx.send(embed = embed)
+                return
         
-        with open("./json/user.json", "r") as f:
-            users = json.load(f)
+        except Exception:
+            return
+
+        with open(f"./{path}", "r") as f:
+            data = json.load(f)
 
         try:
-            level = users[f"{usuario.id}"]["Lvl"]
-            exp = users[f"{usuario.id}"]["Exp"]
+            level = data[str(usuario.id)]["Lvl"]
+            exp = data[str(usuario.id)]["Exp"]
 
-            await ctx.send(f"{usuario.mention} Nv.{level}\n{exp} / {NEXT_LEVEL(level)}exp.")
+            long = 20
+            size = (exp * long) // NEXT_LEVEL(level)
+            bar = ""
+            bar = "█" * size
+            bar += ("─" * (long - size))
+
+            embed.add_field(name = f"{usuario.display_name} Nv.{level}", value = bar, inline = False)
+            embed.add_field(name = "", value = f"{exp} / {NEXT_LEVEL(level)}exp", inline = False) 
+            
+            await ctx.send(embed = embed)
         except KeyError:
-            await ctx.send(f"No tengo registros de **{usuario.display_name}**")
+            embed.add_field(name = f"No existen registros de {usuario.display_name}", value = "", inline = False)
 
-    @commands.command(name = "calculate", aliases = ["calc", "math"], description = "Resuelve una expresion algebráica")
-    async def calculate(self, ctx, *, expresion):
+            await ctx.send(embed = embed)
+
+    @commands.hybrid_command(name = "calculate", aliases = ["calc", "math"], description = "Resuelve una expresion algebráica")
+    async def calculate(self, ctx, *, expresion:str):
+        embed = discord.Embed(title = "Calculate", color = 0x00bbff)
+        if "help" in expresion.casefold():
+            embed.add_field(name = "Help", value = "", inline = False)
+            embed.add_field(name = "Aritmética", value =
+                            "`+` Suma\n" +
+                            "`-` Resta\n" +
+                            "`*` Producto\n" +
+                            "`**` Potencia\n" +
+                            "`/` División\n" +
+                            "`//` Div. Entera\n" +
+                            "`%` Modulo")
+
+            embed.add_field(name = "Cálculo", value =
+                            "`log(x)` Logaritmo N.\n" +
+                            "`log10(x)` Logaritmo\n" +
+                            "`sqrt(x)` Raíz Cuadrada\n" +
+                            "`abs(x)` Valor Absoluto\n" +
+                            "`real(x)` Parte Real\n" +
+                            "`imag(x)` Parte Imag\n" +
+                            "`complex(R, i)` Número comp")
+
+            embed.add_field(name = "Lógica", value =
+                            "`<` Menor\n" +
+                            "`<=` Menor Igual\n" +
+                            "`==` Igual\n" +
+                            "`!=` Diferente\n" +
+                            "`>=` Mayor Igual\n" +
+                            "`<` Mayor\n" +
+                            "`&` AND\n" +
+                            "`|` OR\n" +
+                            "`~` NOT\n" +
+                            "`^` XOR")
+
+            embed.add_field(name = "Trigonometría", value = 
+                            "`sin(x)` Seno\n" +
+                            "`cos(x)` Coseno\n" +
+                            "`tan(x)` Tangente\n" +
+                            "`sinh(x)` Sen Hiperbólico\n" +
+                            "`cosh(x)` Cos Hiperbólico\n" +
+                            "`tanh(x)` Tan Hiperbólica\n" +
+                            "`arcsin(x)` Arc Sen\n" +
+                            "`arccos(x)` Arc Cos\n" +
+                            "`arctan(x)` Arc Tan\n" +
+                            "`arcsinh(x)` Arc Sen H\n" +
+                            "`arccosh(x)` Arc Cos H\n" +
+                            "`arctanh(x)` Arc Tan H")
+
+            embed.set_footer(text = f"numexpr {numexpr.version.version}")
+
+            await ctx.send(embed = embed)
+            return
+        
         try:
             respuesta = numexpr.evaluate(expresion)
-            await ctx.send(f"{expresion} = {respuesta}")
+            embed.add_field(name = expresion, value = f" = {respuesta}")
         except:
-            await ctx.send("Expresión no valida")
+            embed.add_field(name = "Expresión no válida", value = f"`{expresion}` No es una operación válida")
+            embed.set_footer(text = "Pueses escribir 'calculate help' para ver algunas operaciones válidas")
+
+        await ctx.send(embed = embed)
 
     @app_commands.command(name = "bug", description = "Reportar un bug o inconsistencia del bot")
     async def bug(self, interaction:discord.Interaction):
