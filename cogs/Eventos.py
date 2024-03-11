@@ -1,65 +1,99 @@
 import discord
-from discord.ext import commands, tasks
-import json, datetime, os
+from discord.ext import commands
+import json, time, datetime, pytz, os, threading
 from data.config import VERSION, HOME
-
-default_prefix = ","
 
 class Eventos(commands.Cog):
     def __init__(self, Layla):
         self.Layla = Layla
         Eventos.__doc__="Escucha de eventos"
 
-    @commands.Cog.listener()
-    async def on_ready(self):
-        self.fix.start()
+        thread = threading.Thread(target = self.fix_all)
+        thread.daemon = True
+        thread.start()
 
-    @tasks.loop(seconds = 1)
-    async def fix(self):
+    def fix_all(self):
+        current:datetime.datetime
+        f_t:str
+
+        while True:
+            if self.fix_json():
+                current = datetime.datetime.now(pytz.timezone('America/Mexico_City'))
+                f_t = current.strftime("%d/%m/%Y - %H:%M:%S")
+                print(f"    (!) [{f_t}] carpeta json inexistente -> CREANDO")
+            else:
+                if self.fix_prefix():
+                    current = datetime.datetime.now(pytz.timezone('America/Mexico_City'))
+                    f_t = current.strftime("%d/%m/%Y - %H:%M:%S")
+                    print(f"    (!) [{f_t}] prefix corrupto -> REPARANDO")
+                
+                if self.fix_log():
+                    current = datetime.datetime.now(pytz.timezone('America/Mexico_City'))
+                    f_t = current.strftime("%d/%m/%Y - %H:%M:%S")
+                    print(f"    (!) [{f_t}] log channel corrupto -> REPARANDO")
+                
+                if self.fix_mute():
+                    current = datetime.datetime.now(pytz.timezone('America/Mexico_City'))
+                    f_t = current.strftime("%d/%m/%Y - %H:%M:%S")
+                    print(f"    (!) [{f_t}] mute rol corrupto -> REPARANDO")
+
+                if self.fix_user():
+                    current = datetime.datetime.now(pytz.timezone('America/Mexico_City'))
+                    f_t = current.strftime("%d/%m/%Y - %H:%M:%S")
+                    print(f"    (!) [{f_t}] user corrupto -> REPARANDO")
+
+            time.sleep(5)
+
+    def fix_json(self):
         if not os.path.exists("json"):
-            time = datetime.datetime.now()
-            f_t = time.strftime("%d/%m/%Y - %H:%M:%S")
-            print(f"    (!) [{f_t}] carpeta json inexistente -> CREANDO")
             os.makedirs("json")
 
+            self.fix_prefix()
+            self.fix_log()
+            self.fix_mute()
+            self.fix_user()
+
+            return True
+        return False
+
+    def fix_prefix(self):
         prefix = "json/prefix.json"
         if not os.path.exists(prefix) or os.path.getsize(prefix) == 0:
-            time = datetime.datetime.now()
-            f_t = time.strftime("%d/%m/%Y - %H:%M:%S")
-            print(f"    (!) [{f_t}] prefix corrupto -> REPARANDO")
-            
             data = {}
             with open(prefix, "w") as f:
                 for guild in self.Layla.guilds:
                     data[str(guild.id)] = ","
                 json.dump(data, f, indent = 4)
+            
+            return True
+        return False
 
+    def fix_log(self):
         log = "json/log_channel.json"
         if not os.path.exists(log) or os.path.getsize(log) == 0:
-            time = datetime.datetime.now()
-            f_t = time.strftime("%d/%m/%Y - %H:%M:%S")
-            print(f"    (!) [{f_t}] log channel corrupto -> REPARANDO")
-
             with open(log, "w") as f:
                 json.dump({}, f, indent = 4)
 
+            return True
+        return False
+
+    def fix_mute(self):
         mute = "json/mute_rol.json"
         if not os.path.exists(mute) or os.path.getsize(mute) == 0:
-            time = datetime.datetime.now()
-            f_t = time.strftime("%d/%m/%Y - %H:%M:%S")
-            print(f"    (!) [{f_t}] mute rol corrupto -> REPARANDO")
-
             with open(mute, "w") as f:
                 json.dump({}, f, indent = 4)
 
+            return True
+        return False
+
+    def fix_user(self):
         user = "json/user.json"
         if not os.path.exists(user) or os.path.getsize(user) == 0:
-            time = datetime.datetime.now()
-            f_t = time.strftime("%d/%m/%Y - %H:%M:%S")
-            print(f"    (!) [{f_t}] user corrupto -> REPARANDO")
-
             with open(user, "w") as f:
                 json.dump({}, f, indent = 4)
+
+            return True
+        return False
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
@@ -68,7 +102,7 @@ class Eventos(commands.Cog):
             with open(f"./{path}", "r") as f:
                 prefix = json.load(f)
 
-            prefix[str(guild.id)] = default_prefix
+            prefix[str(guild.id)] = ","
 
             with open(f"./{path}", "w") as f:
                 json.dump(prefix, f, indent = 4)

@@ -27,6 +27,32 @@ async def on_ready():
     print(line)
 
 async def load():
+    if not os.path.exists("json"):
+        os.makedirs("json")
+
+    prefix = "json/prefix.json"
+    if not os.path.exists(prefix) or os.path.getsize(prefix) == 0:
+        data = {}
+        with open(prefix, "w") as f:
+            for guild in Layla.guilds:
+                data[str(guild.id)] = ","
+            json.dump(data, f, indent = 4)
+
+    log = "json/log_channel.json"
+    if not os.path.exists(log) or os.path.getsize(log) == 0:
+        with open(log, "w") as f:
+            json.dump({}, f, indent = 4)
+
+    mute = "json/mute_rol.json"
+    if not os.path.exists(mute) or os.path.getsize(mute) == 0:
+        with open(mute, "w") as f:
+            json.dump({}, f, indent = 4)
+
+    user = "json/user.json"
+    if not os.path.exists(user) or os.path.getsize(user) == 0:
+        with open(user, "w") as f:
+            json.dump({}, f, indent = 4)
+
     for filename in os.listdir("./cogs"):
         if filename.endswith(".py"):
             await Layla.load_extension(f"cogs.{filename[:-3]}")

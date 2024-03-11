@@ -1,6 +1,15 @@
 import discord
 from discord.ext import commands
-import os, asyncio, json
+import asyncio, psycopg2
+
+DAD = 608870766586494976
+DB = {
+    "db": "layla",
+    "user": "postgres",
+    "password": "hyromy",
+    "host": "localhost",
+    "port": "5432"
+}
 
 Layla_sleep = commands.Bot(command_prefix = ",,", intents = discord.Intents.all())
 Layla_sleep.remove_command("help")
@@ -18,38 +27,33 @@ async def on_ready():
 
 async def main():
     async with Layla_sleep:
-        await Layla_sleep.start("TOKEN")
+        await Layla_sleep.start("MTE4MTA1NDYzMjc0MzY4NjE5NQ.GsxcMg.jqYojq-KPd9bFARqHocT1xqR0lFkSYIacLH9C4")
 
-@Layla_sleep.command(aliases = ["json"])
-async def write(ctx, id:str, value:str):
-    # en caso de que no exista la ruta crearla
-    if not os.path.exists("test/log"):
-        os.makedirs("test/log")
-        await ctx.send("ruta inexistente, creando ruta")
+@Layla_sleep.event
+async def on_message(message):
+    if message.content == ",connect" and message.author.id == DAD:
+        try:
+            connection = psycopg2.connect(
+                dbname = DB["db"],
+                user = DB["user"],
+                password = DB["password"],
+                host = DB["host"],
+                port = DB["port"])
+            
+            print("Conexion exitosa")
 
-    # en caso de que no exista el archivo, crearlo y prepararlo
-    if not os.path.exists("test/log/test.json"):
-        with open("test/log/test.json", "w") as f:
-            json.dump({}, f)
-            await ctx.send("archivo inexistente, creando archivo")
-    else:
-        # en caso de que el archivo este vacio, prepararlo
-        if os.path.getsize("test/log/test.json") == 0:
-            with open("test/log/test.json", "w") as f:
-                json.dump({}, f)
-                await ctx.send("archivo corrupto, reparando archivo")
+            cursor = connection.cursor()
+            cursor.execute("select * from test;")
+            rows = cursor.fetchall()
 
-    # leyendo archivo
-    with open("test/log/test.json", "r") as f:
-        data = json.load(f)
+            await message.channel.send("(id, value)")
 
-    # insertar informacion
-    data[id] = value
+            for row in rows:
+                await message.channel.send(row)
 
-    # escribir archivo
-    with open("test/log/test.json", "w") as f:
-        json.dump(data, f, indent = 4)
-
-    await ctx.send("registro realizado")
+            cursor.close()
+            connection.close()
+        except Exception as e:
+            print(f"    (!) {e}")
 
 asyncio.run(main())

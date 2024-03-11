@@ -17,7 +17,7 @@ class Precencia(commands.Cog):
         
         self.newstatus.start()
 
-    @tasks.loop(seconds = 600)
+    @tasks.loop(hours = 8)
     async def newstatus(self):
         with open("./data/status.txt", "r", encoding = "utf-8") as f:
             activities = f.readlines()
