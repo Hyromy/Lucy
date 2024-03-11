@@ -42,7 +42,7 @@ class Eventos(commands.Cog):
                     f_t = current.strftime("%d/%m/%Y - %H:%M:%S")
                     print(f"    (!) [{f_t}] user corrupto -> REPARANDO")
 
-            time.sleep(5)
+            time.sleep(1)
 
     def fix_json(self):
         if not os.path.exists("json"):
@@ -58,7 +58,7 @@ class Eventos(commands.Cog):
 
     def fix_prefix(self):
         prefix = "json/prefix.json"
-        if not os.path.exists(prefix) or os.path.getsize(prefix) == 0:
+        if not os.path.exists(prefix) or os.path.getsize(prefix) <= 2:
             data = {}
             with open(prefix, "w") as f:
                 for guild in self.Layla.guilds:

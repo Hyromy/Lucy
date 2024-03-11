@@ -1,12 +1,19 @@
 import discord
 from discord.ext import commands
-import json, asyncio, random, math
+import json, random, threading, time
 from data.config import NEXT_LEVEL
 
 class Nivel(commands.Cog):
     def __init__(self, Layla):
         self.Layla = Layla
         Nivel.__doc__ = "Sistema de niveles de usuario"
+
+        with open("./json/user.json", "r") as f:
+            self.users = json.load(f)
+
+        thread = threading.Thread(target = self.save)
+        thread.daemon = True
+        thread.start()
 
     def level_up(self, author_id):
         level = self.users[author_id]["Lvl"]
@@ -20,20 +27,25 @@ class Nivel(commands.Cog):
         else:
             return False
 
-    async def save(self):
-        await self.Layla.wait_until_ready()
+    def save(self):
         while not self.Layla.is_closed():
-            path = "json/user.json"
-            with open(f"./{path}", "r") as f:
-                data = json.load(f)
+            try:
+                path = "json/user.json"
+                with open(f"./{path}", "r") as f:
+                    data = json.load(f)
+            except Exception:
+                pass
 
-            for user_id, items in data.items():
-                self.users[user_id]["Adv"] = items["Adv"]
+            try:
+                for user_id, items in data.items():
+                    self.users[user_id]["Adv"] = items["Adv"]
+            except Exception:
+                pass
 
             with open(f"./{path}", "w") as f:
                 json.dump(self.users, f, indent = 4)
 
-            await asyncio.sleep(3600)
+            time.sleep(1)
 
     @commands.Cog.listener()
     async def on_message(self, message):
