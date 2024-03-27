@@ -6,6 +6,7 @@ from data.config import VERSION, HOME
 class Eventos(commands.Cog):
     def __init__(self, Layla):
         self.Layla = Layla
+        self.cooldown = 10
         Eventos.__doc__="Escucha de eventos"
 
         thread = threading.Thread(target = self.fix_all)
@@ -13,35 +14,51 @@ class Eventos(commands.Cog):
         thread.start()
 
     def fix_all(self):
+        first = True
+        if first:
+            first = False
+            time.sleep(self.cooldown)
+
         current:datetime.datetime
         f_t:str
 
         while True:
             if self.fix_json():
                 current = datetime.datetime.now(pytz.timezone('America/Mexico_City'))
-                f_t = current.strftime("%d/%m/%Y - %H:%M:%S")
+                f_t = current.strftime("%H:%M:%S")
                 print(f"    (!) [{f_t}] carpeta json inexistente -> CREANDO")
+
+                time.sleep(self.cooldown -1)
+
             else:
                 if self.fix_prefix():
                     current = datetime.datetime.now(pytz.timezone('America/Mexico_City'))
-                    f_t = current.strftime("%d/%m/%Y - %H:%M:%S")
+                    f_t = current.strftime("%H:%M:%S")
                     print(f"    (!) [{f_t}] prefix corrupto -> REPARANDO")
-                
+
+                    time.sleep(self.cooldown -1)
+
                 if self.fix_log():
                     current = datetime.datetime.now(pytz.timezone('America/Mexico_City'))
-                    f_t = current.strftime("%d/%m/%Y - %H:%M:%S")
+                    f_t = current.strftime("%H:%M:%S")
                     print(f"    (!) [{f_t}] log channel corrupto -> REPARANDO")
-                
+
+                    time.sleep(self.cooldown -1)
+
                 if self.fix_mute():
                     current = datetime.datetime.now(pytz.timezone('America/Mexico_City'))
-                    f_t = current.strftime("%d/%m/%Y - %H:%M:%S")
+                    f_t = current.strftime("%H:%M:%S")
                     print(f"    (!) [{f_t}] mute rol corrupto -> REPARANDO")
+
+                    time.sleep(self.cooldown -1)
 
                 if self.fix_user():
                     current = datetime.datetime.now(pytz.timezone('America/Mexico_City'))
-                    f_t = current.strftime("%d/%m/%Y - %H:%M:%S")
+                    f_t = current.strftime("%H:%M:%S")
                     print(f"    (!) [{f_t}] user corrupto -> REPARANDO")
 
+                    time.sleep(self.cooldown -1)
+            
             time.sleep(1)
 
     def fix_json(self):
@@ -60,9 +77,10 @@ class Eventos(commands.Cog):
         prefix = "json/prefix.json"
         if not os.path.exists(prefix) or os.path.getsize(prefix) <= 2:
             data = {}
+            for guild in self.Layla.guilds:
+                data[str(guild.id)] = ","
+
             with open(prefix, "w") as f:
-                for guild in self.Layla.guilds:
-                    data[str(guild.id)] = ","
                 json.dump(data, f, indent = 4)
             
             return True
@@ -70,7 +88,7 @@ class Eventos(commands.Cog):
 
     def fix_log(self):
         log = "json/log_channel.json"
-        if not os.path.exists(log) or os.path.getsize(log) == 0:
+        if not os.path.exists(log) or os.path.getsize(log) < 2:
             with open(log, "w") as f:
                 json.dump({}, f, indent = 4)
 
@@ -79,7 +97,7 @@ class Eventos(commands.Cog):
 
     def fix_mute(self):
         mute = "json/mute_rol.json"
-        if not os.path.exists(mute) or os.path.getsize(mute) == 0:
+        if not os.path.exists(mute) or os.path.getsize(mute) < 2:
             with open(mute, "w") as f:
                 json.dump({}, f, indent = 4)
 
@@ -88,7 +106,7 @@ class Eventos(commands.Cog):
 
     def fix_user(self):
         user = "json/user.json"
-        if not os.path.exists(user) or os.path.getsize(user) == 0:
+        if not os.path.exists(user) or os.path.getsize(user) < 2:
             with open(user, "w") as f:
                 json.dump({}, f, indent = 4)
 

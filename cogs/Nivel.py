@@ -15,18 +15,6 @@ class Nivel(commands.Cog):
         thread.daemon = True
         thread.start()
 
-    def level_up(self, author_id):
-        level = self.users[author_id]["Lvl"]
-        exp = self.users[author_id]["Exp"]
-        next_level = NEXT_LEVEL(level)
-
-        if exp >= next_level:
-            self.users[author_id]["Exp"] -= next_level
-            self.users[author_id]["Lvl"] += 1
-            return True
-        else:
-            return False
-
     def save(self):
         while not self.Layla.is_closed():
             try:
@@ -45,7 +33,19 @@ class Nivel(commands.Cog):
             with open(f"./{path}", "w") as f:
                 json.dump(self.users, f, indent = 4)
 
-            time.sleep(1)
+            time.sleep(60)
+            
+    def level_up(self, author_id):
+        level = self.users[author_id]["Lvl"]
+        exp = self.users[author_id]["Exp"]
+        next_level = NEXT_LEVEL(level)
+
+        if exp >= next_level:
+            self.users[author_id]["Exp"] -= next_level
+            self.users[author_id]["Lvl"] += 1
+            return True
+        else:
+            return False
 
     @commands.Cog.listener()
     async def on_message(self, message):
