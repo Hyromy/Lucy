@@ -59,6 +59,13 @@ class Eventos(commands.Cog):
 
                     time.sleep(self.cooldown -1)
             
+                if self.fix_chatbot():
+                    current = datetime.datetime.now(pytz.timezone('America/Mexico_City'))
+                    f_t = current.strftime("%H:%M:%S")
+                    print(f"    (!) [{f_t}] chatbot corrupto -> REPARANDO")
+
+                    time.sleep(self.cooldown -1)
+
             time.sleep(1)
 
     def fix_json(self):
@@ -69,6 +76,7 @@ class Eventos(commands.Cog):
             self.fix_log()
             self.fix_mute()
             self.fix_user()
+            self.fix_chatbot()
 
             return True
         return False
@@ -108,6 +116,15 @@ class Eventos(commands.Cog):
         user = "json/user.json"
         if not os.path.exists(user) or os.path.getsize(user) < 2:
             with open(user, "w") as f:
+                json.dump({}, f, indent = 4)
+
+            return True
+        return False
+    
+    def fix_chatbot(self):
+        chatbot = "json/chatbot.json"
+        if not os.path.exists(chatbot) or os.path.getsize(chatbot) < 2:
+            with open(chatbot, "w") as f:
                 json.dump({}, f, indent = 4)
 
             return True
@@ -211,7 +228,7 @@ class Eventos(commands.Cog):
     async def on_command_error(self, ctx, error):
         if isinstance(error, discord.HTTPException):
             time = datetime.datetime.now()
-            f_t = time.strftime("%d/%m/%Y - %H:%M:%S")
+            f_t = time.strftime("%H:%M:%S")
             print(f"    (!) [{f_t}] Error de comando (General)")
 
 async def setup(Layla):

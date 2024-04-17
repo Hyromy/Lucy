@@ -14,7 +14,6 @@ class Precencia(commands.Cog):
                 await self.Layla.user.edit(avatar = avatar.read())
         except Exception as e:
             print(f"    (!) Icono animado: {e}")
-        
         self.newstatus.start()
 
     @tasks.loop(hours = 8)
@@ -25,7 +24,6 @@ class Precencia(commands.Cog):
         name = random.choice(activities)
         activity = discord.Game(name = name)
         await self.Layla.change_presence(activity = activity)
-        #await self.Layla.change_presence(status = discord.Status.idle, activity = discord.Game("Experimentando"))
 
 async def setup(Layla):
     await Layla.add_cog(Precencia(Layla))

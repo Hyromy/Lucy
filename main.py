@@ -3,8 +3,6 @@ import discord
 from discord.ext import commands
 import os, asyncio, json, pytz, time, datetime, threading
 
-max_long = None
-
 def next_day():
     first = True
     while True:
@@ -21,8 +19,11 @@ def next_day():
             day = f" {day} ".center(32 + len(day), "-")
 
             print(f"\n\n{day}")
-        
-        time.sleep((60 ** 2) * 24 - (s + m + h))
+
+            with open("json/chatbot", "w") as f:
+                json.dump({}, f, indent = 4)
+
+        time.sleep(((60 ** 2) * 24) - (s + m + h))
 
 def get_prefix_server(Layla, message):
     with open("json/prefix.json", "r") as f:
@@ -81,6 +82,11 @@ async def load():
     user = "json/user.json"
     if not os.path.exists(user) or os.path.getsize(user) < 2:
         with open(user, "w") as f:
+            json.dump({}, f, indent = 4)
+
+    chatbot = "json/chatbot.json"
+    if not os.path.exists(chatbot) or os.path.getsize(chatbot) < 2:
+        with open(chatbot, "w") as f:
             json.dump({}, f, indent = 4)
 
     for filename in os.listdir("./cogs"):
