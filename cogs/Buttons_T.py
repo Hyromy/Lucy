@@ -27,13 +27,13 @@ class AllButtons(discord.ui.View):
         await interaction.response.send_message(content="Boton peligro presionado")
 
 class Buttons_T(commands.Cog):
-    def __init__(self, Layla):
-        self.Layla = Layla
+    def __init__(self, Lucy):
+        self.Lucy = Lucy
         Buttons_T.__doc__="Gog de prueba"
 
     @app_commands.command(name="botones", description="menu de botones")
     async def allbutton(self, interaction:discord.Interaction):
         await interaction.response.send_message(content="Presiona un boton1", view=AllButtons())
 
-async def setup(Layla):
-    await Layla.add_cog(Buttons_T(Layla))
+async def setup(Lucy):
+    await Lucy.add_cog(Buttons_T(Lucy))

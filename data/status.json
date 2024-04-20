@@ -1,31 +1,48 @@
 {
-    "✨":[
-        "Midiendo el cosmos",
-        "Contemplando la bóveda celeste",
-        "Dibujando mapas estelares",
-        "Desentrañando los misterios del cosmos",
-        "Amante de la astronomía",
-        "Las estrellas me llaman",
-        "Buscame en la biblioteca",
-        "La Vía Láctea no es de leche"
+    "🎌":[
+        "¡Soy una mona china!",
+        "Nyanyame nyanyajyuunyanyado no nyarabi de nyakunyaku inyanyaku nyanyahan nyanyadai nyannyaku nyarabete nyaganyagame",
+        "私はルシアです"
     ],
-    "🌙":[
-        "Noches largas de investigación",
-        "Soñado despierta",
-        "Un café con las estrellas",
-        "¡Noctámbula!",
-        "Sonámbula estelar",
-        "z Z z",
-        "Buscame en el observatorio",
-        "Mi tesis se escribió sola"
+    "🎮":[
+        "Minecraft",
+        "osu!",
+        "ELDEN RING",
+        "Geometry Dash",
+        "Baldur's Gate 3",
+        "Subnautica"
+    ],
+    "💻":[
+        "Rompiendome la cabeza",
+        "No soy tan diferente a ChatGPT",
+        "Autoprogramandome",
+        "01001000 01001111 01001100 01000001",
+        "Optimizando"
+    ],
+    "🎧":[
+        "J-Pop",
+        "Vocalid",
+        "Minecraft",
+        "Future Bass"
     ],
     "📓":[
-        "Tomando apuntes",
-        "Calculando constelaciones",
-        "Trabajando en mi tesis",
-        "Tarea",
-        "Estudiando",
-        "Preparando una presentación",
-        "Estoy en una clase"
+        "Tengo tarea",
+        "Preparando una exposicion",
+        "Clase",
+        "Estudiando"
+    ],
+    "📺":[
+        "Kaguya-sama: Love Is War",
+        "Spy X Family",
+        "Oshi no Ko",
+        "Imoto Sae Ireba Ii",
+        "KonoSuba!",
+        "One Punch-Man",
+        "Bocchi the Rock!"
+    ],
+    "🌙":[
+        "Tengo sueño",
+        "z Z z",
+        "Modo oscuro"
     ]
 }

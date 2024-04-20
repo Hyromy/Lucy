@@ -4,8 +4,8 @@ import json, time, datetime, pytz, os, threading
 from data.config import VERSION, HOME
 
 class Eventos(commands.Cog):
-    def __init__(self, Layla):
-        self.Layla = Layla
+    def __init__(self, Lucy):
+        self.Lucy = Lucy
         self.cooldown = 10
         Eventos.__doc__="Escucha de eventos"
 
@@ -85,7 +85,7 @@ class Eventos(commands.Cog):
         prefix = "json/prefix.json"
         if not os.path.exists(prefix) or os.path.getsize(prefix) <= 2:
             data = {}
-            for guild in self.Layla.guilds:
+            for guild in self.Lucy.guilds:
                 data[str(guild.id)] = ","
 
             with open(prefix, "w") as f:
@@ -148,16 +148,16 @@ class Eventos(commands.Cog):
 
         try: #carta de presentacion
             author:discord.Member = guild.owner
-            home:discord.Guild = discord.utils.get(self.Layla.guilds, id = HOME)
+            home:discord.Guild = discord.utils.get(self.Lucy.guilds, id = HOME)
 
             embed = discord.Embed(title = f"Gracias por invitarme a {guild.name}!", color = 0x00bbff)
-            embed.set_thumbnail(url = self.Layla.user.avatar)
-            embed.add_field(name = f"Soy {self.Layla.user.name}", value =
+            embed.set_thumbnail(url = self.Lucy.user.avatar)
+            embed.add_field(name = f"Soy {self.Lucy.user.name}", value =
                             "Soy aspirante a ser una bot multifuncional en español para tu servidor. Aunque actualmente sigo en desarrollo y con muchas tareas pendietes, me esforzaré para ayudarlos en lo que pueda, y hacer de tu servidor más agradable y acogedor.",
                             inline = False)
 
             embed.add_field(name = f"Primeros pasos", value = 
-                            f"Puedes configurar mi prefijo con `,setprefix <nuevo prefijo>`. Si alguna vez olvidas mi prefijo puedes escribir {self.Layla.user.mention} prefix.\n" + 
+                            f"Puedes configurar mi prefijo con `,setprefix <nuevo prefijo>`. Si alguna vez olvidas mi prefijo puedes escribir {self.Lucy.user.mention} prefix.\n" + 
                             "Tambien puedes ver mi lista de comandos disponibles con el comando `help`. Estoy aqui para ayudarte en lo que necesites.",
                             inline = False)
 
@@ -207,7 +207,7 @@ class Eventos(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if "prefix" in message.content.lower() and self.Layla.user.mention in message.content:
+        if "prefix" in message.content.lower() and self.Lucy.user.mention in message.content:
             path = "json/prefix.json"
             with open(f"./{path}", "r") as f:
                 data = json.load(f)
@@ -221,7 +221,7 @@ class Eventos(commands.Cog):
                 with open(f"./{path}", "w") as f:
                     json.dump(data, f, indent = 4)
 
-            prefix = self.Layla.command_prefix(self.Layla, message)
+            prefix = self.Lucy.command_prefix(self.Lucy, message)
             await message.channel.send(f"El prefijo de este servidor es `{prefix}`")
 
     @commands.Cog.listener()
@@ -231,5 +231,5 @@ class Eventos(commands.Cog):
             f_t = time.strftime("%H:%M:%S")
             print(f"    (!) [{f_t}] Error de comando (General)")
 
-async def setup(Layla):
-    await Layla.add_cog(Eventos(Layla))
+async def setup(Lucy):
+    await Lucy.add_cog(Eventos(Lucy))

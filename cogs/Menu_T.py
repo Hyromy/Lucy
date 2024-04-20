@@ -19,8 +19,8 @@ class SelectMenu(discord.ui.View):
             await interaction.response.send_message(content="Escogiste el color azul")
 
 class Menu_T(commands.Cog):
-    def __init__(self, Layla):
-        self.Layla = Layla
+    def __init__(self, Lucy):
+        self.Lucy = Lucy
         Menu_T.__doc__="Cog de prueba"
 
     @commands.hybrid_command(name="setcolor", description="Establece un color de usuario")
@@ -28,5 +28,5 @@ class Menu_T(commands.Cog):
         await ctx.send("Selecciona un color", view=SelectMenu())
         await ctx.send("Por cierto esto no sirve de nada xd")
 
-async def setup(Layla):
-    await Layla.add_cog(Menu_T(Layla))
+async def setup(Lucy):
+    await Lucy.add_cog(Menu_T(Lucy))

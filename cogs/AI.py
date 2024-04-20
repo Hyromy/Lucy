@@ -4,8 +4,8 @@ from discord.ext import commands
 from data.config import AI_KEY, PROMPT
 
 class AI(commands.Cog):
-    def __init__(self, Layla):
-        self.Layla = Layla
+    def __init__(self, Lucy):
+        self.Lucy = Lucy
         self.ia = OpenAI(api_key = AI_KEY)
         self.context = {"role": "system", "content": PROMPT.replace("\n", " ")}
 
@@ -26,7 +26,7 @@ class AI(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message:discord.Message):
-        if isinstance(message.channel, discord.DMChannel) and message.author != self.Layla.user:
+        if isinstance(message.channel, discord.DMChannel) and message.author != self.Lucy.user:
             async with message.channel.typing():
                 try:
                     with open("./json/chatbot.json") as f:
@@ -44,7 +44,7 @@ class AI(commands.Cog):
                 answer = self.answer(data[user_id])
                 data[user_id].append(answer)
 
-                if len(data[user_id]) > 10:
+                if len(data[user_id]) > 20:
                     for i in range(2):
                         data[user_id].pop(0)
 
@@ -53,5 +53,5 @@ class AI(commands.Cog):
 
                 await message.channel.send(answer["content"])
 
-async def setup(Layla):
-    await Layla.add_cog(AI(Layla))
+async def setup(Lucy):
+    await Lucy.add_cog(AI(Lucy))

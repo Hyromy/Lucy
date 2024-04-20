@@ -25,23 +25,23 @@ def next_day():
 
         time.sleep(((60 ** 2) * 24) - (s + m + h))
 
-def get_prefix_server(Layla, message):
+def get_prefix_server(Lucy, message):
     with open("json/prefix.json", "r") as f:
         prefix = json.load(f)
 
     return prefix.get(str(message.guild.id))
 
-Layla = commands.Bot(command_prefix = get_prefix_server, intents = discord.Intents.all())
-Layla.remove_command("help")
+Lucy = commands.Bot(command_prefix = get_prefix_server, intents = discord.Intents.all())
+Lucy.remove_command("help")
 
-@Layla.event
+@Lucy.event
 async def on_ready():
-    await Layla.tree.sync()
+    await Lucy.tree.sync()
 
     current = datetime.datetime.now(pytz.timezone("America/Mexico_City"))
 
     sp = 16
-    ready = f"{' ' * sp}{Layla.user.name} está lista{' ' * sp}"
+    ready = f"{' ' * sp}{Lucy.user.name} está lista{' ' * sp}"
     date = current.strftime("%d/%m/%Y - %H:%M:%S").center(len(ready))
     line = "-" * len(ready)
 
@@ -63,7 +63,7 @@ async def load():
     prefix = "json/prefix.json"
     if not os.path.exists(prefix) or os.path.getsize(prefix) <= 2:
         data = {}
-        for guild in Layla.guilds:
+        for guild in Lucy.guilds:
             data[str(guild.id)] = ","
 
         with open(prefix, "w") as f:
@@ -91,12 +91,12 @@ async def load():
 
     for filename in os.listdir("./cogs"):
         if filename.endswith(".py"):
-            await Layla.load_extension(f"cogs.{filename[:-3]}")
+            await Lucy.load_extension(f"cogs.{filename[:-3]}")
             print(f"Cargando: {filename[:-3]}...")
 
 async def main():
-    async with Layla:
+    async with Lucy:
         await load()
-        await Layla.start(TOKEN)
+        await Lucy.start(TOKEN)
 
 asyncio.run(main())

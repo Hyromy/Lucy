@@ -8,20 +8,20 @@ from numpy import *
 from data.config import *
 
 class HelpSelect(Select):
-    def __init__(self, Layla:commands.Bot):
+    def __init__(self, Lucy:commands.Bot):
         super().__init__(
             placeholder = "Escoje una categoria",
             options = [
                 discord.SelectOption(
                     label = cog_name, description = cog.__doc__
-                ) for cog_name, cog in Layla.cogs.items() if cog.__cog_commands__ and cog_name not in ["Jishaku"]
+                ) for cog_name, cog in Lucy.cogs.items() if cog.__cog_commands__ and cog_name not in ["Jishaku"]
             ]
         )
 
-        self.Layla = Layla
+        self.Lucy = Lucy
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        cog = self.Layla.get_cog(self.values[0])
+        cog = self.Lucy.get_cog(self.values[0])
         assert cog
 
         commands_mixer = []
@@ -60,8 +60,8 @@ class BugReport(discord.ui.Modal, title = "Reportar bug"):
         await interaction.response.send_message(f"{interaction.user.mention} Gracias por reportar el bug. Este será corregido en futuras versiones", ephemeral = True)
 
 class Comandos(commands.Cog):
-    def __init__(self, Layla):
-        self.Layla = Layla
+    def __init__(self, Lucy):
+        self.Lucy = Lucy
         Comandos.__doc__ = "Comandos varios"
         
     # ---- A ----
@@ -210,12 +210,12 @@ class Comandos(commands.Cog):
     @commands.hybrid_command(name="help", aliases=["h", "H"],description="Muestra la lista de comandos disponibles")
     async def help(self, ctx):
         embed = discord.Embed(title="Help", color=0x00bbff)
-        for cog_name, cog in self.Layla.cogs.items():
+        for cog_name, cog in self.Lucy.cogs.items():
             if len(cog.get_commands()) >= 1:
                 embed.add_field(name = cog_name, value = cog.__doc__, inline = False)
-        embed.set_footer(text = f"{self.Layla.user.name} {VERSION}", icon_url = self.Layla.user.avatar)
+        embed.set_footer(text = f"{self.Lucy.user.name} {VERSION}", icon_url = self.Lucy.user.avatar)
 
-        view = View().add_item(HelpSelect(self.Layla))
+        view = View().add_item(HelpSelect(self.Lucy))
         await ctx.send(embed = embed, view = view)    
     
     # ---- I ----
@@ -279,7 +279,7 @@ class Comandos(commands.Cog):
     # ---- P ----
     @commands.hybrid_command(name="ping", description="Mide la latencia del bot en milisegundos")
     async def ping(self, ctx):
-        lat = round(self.Layla.latency * 1000)
+        lat = round(self.Lucy.latency * 1000)
 
         embed = discord.Embed(title = "Ping",color = 0x00bbff)
         embed.add_field(name = "Pong!", value = f"{lat}ms")
@@ -371,5 +371,5 @@ class Comandos(commands.Cog):
     # ---- Y ----
     # ---- Z ----
 
-async def setup(Layla):
-    await Layla.add_cog(Comandos(Layla))
+async def setup(Lucy):
+    await Lucy.add_cog(Comandos(Lucy))

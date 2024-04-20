@@ -3,8 +3,8 @@ from discord.ext import commands
 import json
 
 class Moderacion(commands.Cog):
-    def __init__(self, Layla):
-        self.Layla = Layla
+    def __init__(self, Lucy):
+        self.Lucy = Lucy
         Moderacion.__doc__="Moderación y control"
 
     @commands.hybrid_command(name="clear", description="Borra una cantidad especifica de mensajes en el canal")
@@ -172,5 +172,5 @@ class Moderacion(commands.Cog):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Comando invalido, requiere argumentos adicionales. `unmute @<miembro>`\n`<argumento>` Obligatorio")
 
-async def setup(Layla):
-    await Layla.add_cog(Moderacion(Layla))
+async def setup(Lucy):
+    await Lucy.add_cog(Moderacion(Lucy))

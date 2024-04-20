@@ -4,8 +4,8 @@ import json, random, threading, time
 from data.config import NEXT_LEVEL
 
 class Nivel(commands.Cog):
-    def __init__(self, Layla):
-        self.Layla = Layla
+    def __init__(self, Lucy):
+        self.Lucy = Lucy
         Nivel.__doc__ = "Sistema de niveles de usuario"
 
         with open("./json/user.json", "r") as f:
@@ -16,7 +16,7 @@ class Nivel(commands.Cog):
         thread.start()
 
     def save(self):
-        while not self.Layla.is_closed():
+        while not self.Lucy.is_closed():
             try:
                 path = "json/user.json"
                 with open(f"./{path}", "r") as f:
@@ -68,5 +68,5 @@ class Nivel(commands.Cog):
 
                 await message.author.send(embed = embed)
 
-async def setup(Layla):
-    await Layla.add_cog(Nivel(Layla))
+async def setup(Lucy):
+    await Lucy.add_cog(Nivel(Lucy))

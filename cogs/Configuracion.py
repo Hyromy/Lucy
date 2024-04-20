@@ -3,8 +3,8 @@ from discord.ext import commands
 import json, datetime
 
 class Configuracion(commands.Cog):
-    def __init__(self, Layla):
-        self.Layla = Layla
+    def __init__(self, Lucy):
+        self.Lucy = Lucy
         Configuracion.__doc__="Configuración del bot"
 
     @commands.hybrid_command(name="setprefix", description="Establece un prefijo para el servidor")
@@ -100,7 +100,7 @@ class Configuracion(commands.Cog):
             await ctx.send(f"Aun no hay un canal de depuración configurado.")
             return
         
-        channel_out = self.Layla.get_channel(channel_id)
+        channel_out = self.Lucy.get_channel(channel_id)
         await channel_out.send(mensaje)
     @msglog.error
     async def msglog_error(self, ctx, error):
@@ -110,5 +110,5 @@ class Configuracion(commands.Cog):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Comando invalido, requiere argumentos adicionales. `setlog <id_canal>`\n`<argumento>` Obligatorio")
 
-async def setup(Layla):
-    await Layla.add_cog(Configuracion(Layla))
+async def setup(Lucy):
+    await Lucy.add_cog(Configuracion(Lucy))
