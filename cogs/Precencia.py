@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands, tasks
-import random
+import random, json
 
 class Precencia(commands.Cog):
     def __init__(self, Layla):
@@ -8,21 +8,18 @@ class Precencia(commands.Cog):
         Precencia.__doc__ = "Precencia del bot"
 
     @commands.Cog.listener()
-    async def on_ready(self):        
-        try:
-            with open("data/Layla.gif", "rb") as avatar:
-                await self.Layla.user.edit(avatar = avatar.read())
-        except Exception as e:
-            print(f"    (!) Icono animado: {e}")
+    async def on_ready(self):
         self.newstatus.start()
 
-    @tasks.loop(hours = 8)
+    @tasks.loop(hours = 1)
     async def newstatus(self):
-        with open("./data/status.txt", "r", encoding = "utf-8") as f:
-            activities = f.readlines()
+        with open("./data/status.json", encoding = "utf-8") as f:
+            data = json.load(f)
 
-        name = random.choice(activities)
-        activity = discord.Game(name = name)
+        key = random.choice(list(data.keys()))
+        status = random.choice(data[key])
+
+        activity = discord.CustomActivity(name = f"{key} {status}", emoji = key)
         await self.Layla.change_presence(activity = activity)
 
 async def setup(Layla):
