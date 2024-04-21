@@ -1,6 +1,5 @@
-import discord
+import discord, json, random, threading, time
 from discord.ext import commands
-import json, random, threading, time
 from data.config import NEXT_LEVEL
 
 class Nivel(commands.Cog):

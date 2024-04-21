@@ -1,9 +1,7 @@
-import discord
+import discord, json, random, numexpr, emoji as pymoji
 from discord import app_commands
 from discord.ext import commands
 from discord.ui import View, Select
-import json, random, numexpr
-import emoji as pymoji
 from numpy import *
 from data.config import *
 

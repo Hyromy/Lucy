@@ -1,6 +1,5 @@
-import discord
+import discord, json, time, datetime, pytz, os, threading
 from discord.ext import commands
-import json, time, datetime, pytz, os, threading
 from data.config import VERSION, HOME
 
 class Eventos(commands.Cog):

@@ -1,6 +1,5 @@
-import discord
+import discord, json
 from discord.ext import commands
-import json, datetime
 
 class Configuracion(commands.Cog):
     def __init__(self, Lucy):
