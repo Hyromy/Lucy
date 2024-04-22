@@ -20,8 +20,14 @@ def next_day():
 
             print(f"\n\n{day}")
 
-            with open("json/chatbot", "w") as f:
-                json.dump({}, f, indent = 4)
+            with open("json/chatbot.json") as f:
+                data = json.load(f)
+
+            for i in data:
+                data[i]["chat"].clear()
+
+            with open ("json/chatbot.json", "w") as f:
+                json.dump(data, f, indent = 4)
 
         time.sleep(((60 ** 2) * 24) - (s + m + h))
 

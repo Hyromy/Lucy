@@ -13,12 +13,18 @@ class Precencia(commands.Cog):
         self.activity = None
         Precencia.__doc__ = "Precencia del bot"
     
+    def write_current_status(self, status:str):
+        with open("./data/current_status.txt", "w", encoding = "utf-8") as f:
+            f.write(status)
+
     @tasks.loop()
     async def playing(self):
         for i in self.playlist:
             self.activity = discord.Activity(type = discord.ActivityType.listening, name = f"{i["artist"]}, {i["track"]}")
+            self.write_current_status(f"escuchar musica {i["track"]} / {i["artist"]}")
+
             await self.Lucy.change_presence(activity = self.activity)
-            
+
             self.playing.change_interval(
                 minutes = i["duration"]["minutes"],
                 seconds = i["duration"]["seconds"])
@@ -46,6 +52,8 @@ class Precencia(commands.Cog):
             
             status = random.choice(game_list)
             self.activity = discord.Game(name = status)
+
+            self.write_current_status(f"jugar {status}")
             self.cooldown = 30 + random.randint(0, 30)
 
         elif key == "🎧":
@@ -90,12 +98,14 @@ class Precencia(commands.Cog):
         elif key == "📺":
             anime = random.choice(data[key])
             self.activity = discord.Activity(type = discord.ActivityType.watching, name = anime)
-            self.cooldown = 20 * random.randint(1, 2)
+            self.write_current_status(f"ver anime {anime}")
+            self.cooldown = 20 * random.randint(1, 3)
 
         else:
             status = random.choice(data[key])
             self.activity = discord.CustomActivity(name = f"{key} {status}")
-            self.cooldown = random.randint(1, 60)
+            self.write_current_status(status)
+            self.cooldown = random.randint(10, 60)
         
         if key != "🎧":
             await self.Lucy.change_presence(activity = self.activity)
