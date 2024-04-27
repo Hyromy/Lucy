@@ -20,8 +20,10 @@ class Precencia(commands.Cog):
     @tasks.loop()
     async def playing(self):
         for i in self.playlist:
-            self.activity = discord.Activity(type = discord.ActivityType.listening, name = f"{i["artist"]}, {i["track"]}")
-            self.write_current_status(f"escuchar musica {i["track"]} / {i["artist"]}")
+            name = i["artist"] + ", " + i["track"]
+            status = i["track"] + " / " + i["artist"]
+            self.activity = discord.Activity(type = discord.ActivityType.listening, name = name)
+            self.write_current_status("escuchar musica " + status)
 
             await self.Lucy.change_presence(activity = self.activity)
 
