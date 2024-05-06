@@ -31,6 +31,10 @@ class AI(commands.Cog):
         with open("./json/chatbot.json") as f:
             data = json.load(f)
 
+        if id not in data:
+            self.new_chatbot(id)
+            return False
+
         return data[id]["premium"][model]
     
     def get_chat_log(self, id:str) -> dict:
@@ -71,20 +75,25 @@ class AI(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
+        user_id = str(after.id)
+        with open("./json/chatbot.json") as f:
+            data = json.load(f)
+        
+        if user_id not in data:
+            self.new_chatbot(user_id)
+            
+            with open("./json/chatbot.json") as f:
+                data = json.load(f)
+
         premium_gpt_b = discord.utils.get(before.roles, id = 1206038019782615140)
         premium_gpt_a = discord.utils.get(after.roles, id = 1206038019782615140)
 
-        with open("./json/chatbot.json") as f:
-            data = json.load(f)
-
         if premium_gpt_b is None and premium_gpt_a is not None:
-            print("gpt premium añadido")
-            data[str(after.id)]["premium"]["gpt"] = True
+            data[user_id]["premium"]["gpt"] = True
 
         elif premium_gpt_b is not None and premium_gpt_a is None:
-            print("gpt premium removido")
-            data[str(after.id)]["premium"]["gpt"] = False
-
+            data[user_id]["premium"]["gpt"] = False
+        
         with open("./json/chatbot.json", "w") as f:
             json.dump(data, f, indent = 4)
 
@@ -120,7 +129,7 @@ class AI(commands.Cog):
 
                     chat = self.forgot_messages(chat, 10)
                     self.write_chat(user_id, chat)
-                    await message.channel.send(chat[-1]["content"] + f"`Premium: {premium}`")
+                    await message.channel.send(chat[-1]["content"])
 
         except discord.HTTPException:
             embed = discord.Embed(color = 0x00bbff)
@@ -147,11 +156,7 @@ class AI(commands.Cog):
     @app_commands.command(name = "generate", description = "Genera una imagen con Inteligencia Artificial")
     async def generate(self, interaction:discord.Interaction, prompt:str, formato:str, hd:bool):
         premium = self.is_premium(str(interaction.user.id), "dalle")
-        if interaction.user.id != DAD or premium:
-            embed = discord.Embed(color = 0x00bbff, title = "Generación no disponible")
-            embed.add_field(name = "", value = f"Desafortunadamente la IA generativa de imagen es costosa, por lo que <@{DAD}> ha limitado su uso.\nLamentamos las molestias")
-        
-        else:
+        if int(interaction.user.id) == DAD or premium:
             async with interaction.channel.typing():
                 try:
                     image_url = self.model.dalle(prompt, formato, hd)
@@ -163,7 +168,10 @@ class AI(commands.Cog):
                 except Exception as e:
                     embed = discord.Embed(color = 0x00bbff, title = "Hubo un problema")
                     embed.add_field(name = "Hubo un problema al general la imagen", value = e)
-                
+        else:
+            embed = discord.Embed(color = 0x00bbff, title = "Generación no disponible")
+            embed.add_field(name = "", value = f"Desafortunadamente la IA generativa de imagen es costosa, por lo que <@{DAD}> ha limitado su uso.\nLamentamos las molestias")
+
         await interaction.channel.send(embed = embed)
 
     @app_commands.command(name = "gptdata", description = "realiza una prueba con tu modelo de chatbot asignado")

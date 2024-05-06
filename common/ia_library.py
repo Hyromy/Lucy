@@ -32,8 +32,6 @@ class IAModel:
         role = response.choices[0].message.role
         content = response.choices[0].message.content
 
-        print(content)
-
         return {"role":role, "content":content}
 
     def gpt_test(self, prompt:str, gpt4 = False):
