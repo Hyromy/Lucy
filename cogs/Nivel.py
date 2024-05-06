@@ -54,7 +54,7 @@ class Nivel(commands.Cog):
                 self.users[author_id] = {}
                 self.users[author_id]["Lvl"] = 0
                 self.users[author_id]["Exp"] = 0
-                self.users[author_id]["Adv"] = True
+                self.users[author_id]["Adv"] = False
 
             self.users[author_id]["Exp"] += random.randint(1, 5)
             if self.level_up(author_id) and self.users[author_id]["Adv"]:
