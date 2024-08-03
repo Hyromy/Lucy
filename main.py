@@ -14,7 +14,7 @@ import common.clock
 load_dotenv("config.env")
 
 intents = discord.Intents.all()
-Lucy = commands.Bot(command_prefix = ",,", intents = intents)
+Lucy = commands.Bot(command_prefix = ",", intents = intents)
 
 def ready_msg():    
     common.activies.draw_spliter(text = "")
@@ -51,7 +51,7 @@ async def load_cogs():
 async def main():
     async with Lucy:
         await load_cogs()
-        await Lucy.start(os.getenv("TOKEN"))
+        await Lucy.start(os.getenv("DISCORD_BOT_TOKEN"))
 
 try:
     asyncio.run(main())
