@@ -10,7 +10,6 @@ from dotenv import load_dotenv
 
 import common.activies
 import common.clock
-
 load_dotenv("config.env")
 
 intents = discord.Intents.all()
@@ -29,7 +28,7 @@ def ready_msg():
     f_time = current.strftime(" %d/%m/%Y %H:%M:%S ")
     print()
     print(f_time.center(common.activies.get_terminal_size(), "-"))
-    print()   
+    print()
 
 @Lucy.event
 async def on_ready():
