@@ -3,11 +3,9 @@ import random
 import os
 import asyncio
 import spotipy
-import json
-import datetime
+import animeflv
 
 from discord.ext import commands
-
 class Status(commands.Cog):
     def __init__(self, Lucy):
         self.Lucy:commands.Bot = Lucy
@@ -21,7 +19,7 @@ class Status(commands.Cog):
                 client_id = os.getenv("SPOTIPY_CLIENT_ID"),
                 client_secret = os.getenv("SPOTIPY_CLIENT_SECRET"),
                 cache_handler = spotipy.cache_handler.CacheFileHandler(
-                    cache_path = "spotipyOauthCache.json"
+                    cache_path = "spotipyoauthcache.cache"
                 )
             )
         )
@@ -44,18 +42,31 @@ class Status(commands.Cog):
 
         elif activity == "🎧":
             await self.music()
-        
+
         await self.choose_activity()
 
     async def anime(self):
-        await self.Lucy.change_presence(
-            activity = discord.Activity(
-                type = discord.ActivityType.watching,
-                name = "anime"
-            )
-        )
+        intents = 0
+        animes = []
+        while not animes and intents < 10:
+            with animeflv.AnimeFLV() as af:
+                animes = af.get_latest_animes()
+        
+            if not animes:
+                print("Intento", intents + 1)
+                intents += 1
 
-        await asyncio.sleep(60)
+            else:
+                print("Animes cargados")
+                for _ in range(random.randint(1, 3)):
+                    anime = random.choice(animes)
+                    await self.Lucy.change_presence(
+                        activity = discord.Activity(
+                            type = discord.ActivityType.watching,
+                            name = anime.title,
+                        )
+                    )
+                    await asyncio.sleep(random.randint(1200, 1440))
 
     async def music(self):
         tracks = []

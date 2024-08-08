@@ -48,7 +48,7 @@ class Events(commands.Cog):
             await message.add_reaction("✅")
             await message.author.send(
                 embed = embed,
-                delete_after = 10
+                delete_after = 60
             )
 
 async def setup(Lucy):

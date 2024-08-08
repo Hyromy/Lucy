@@ -1,3 +1,5 @@
 venv/
 config.env
 __pycache__/
+*.log
+*.cache
