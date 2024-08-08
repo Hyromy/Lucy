@@ -4,12 +4,13 @@ import os
 import asyncio
 import spotipy
 import animeflv
+import steam_web_api
 
 from discord.ext import commands
 class Status(commands.Cog):
     def __init__(self, Lucy):
         self.Lucy:commands.Bot = Lucy
-        self.activities = ["📺", "🎧"]
+        self.activities = ["📺", "🎧", "🎮"]
 
         self.spotify = None
 
@@ -43,6 +44,9 @@ class Status(commands.Cog):
         elif activity == "🎧":
             await self.music()
 
+        elif activity == "🎮":
+            await self.game()
+
         await self.choose_activity()
 
     async def anime(self):
@@ -53,11 +57,9 @@ class Status(commands.Cog):
                 animes = af.get_latest_animes()
         
             if not animes:
-                print("Intento", intents + 1)
                 intents += 1
 
             else:
-                print("Animes cargados")
                 for _ in range(random.randint(1, 3)):
                     anime = random.choice(animes)
                     await self.Lucy.change_presence(
@@ -92,6 +94,24 @@ class Status(commands.Cog):
             )
 
             await asyncio.sleep(tracks[i]["track"]["duration_ms"] / 1000)
+
+    async def game(self):
+        steam = steam_web_api.Steam(os.getenv("STEAM_API_KEY"))
+        user_games = steam.users.get_owned_games(os.getenv("STEAM_USER_ID"))["games"]
+
+        game_list = []
+        for game in user_games:
+            if game["playtime_forever"] > 60:
+                game_list.append(game)
+
+        game = random.choice(game_list)
+        await self.Lucy.change_presence(
+            activity = discord.Activity(
+                type = discord.ActivityType.playing,
+                name = game["name"],
+            )
+        )
+        await asyncio.sleep(random.randint(600, 3600))
 
 async def setup(Lucy):
     await Lucy.add_cog(Status(Lucy))
