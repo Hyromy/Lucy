@@ -11,7 +11,7 @@ def get_version() -> str:
 
     if releases.totalCount == 0:
         return "Versión desconocida"
-    return releases[0].title
+    return releases[0].tag_name
 
 def get_terminal_size() -> int:
     terminal_size = shutil.get_terminal_size()

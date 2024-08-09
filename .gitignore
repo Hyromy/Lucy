@@ -3,3 +3,5 @@ config.env
 __pycache__/
 *.log
 *.cache
+*.sql
+dbcache/
