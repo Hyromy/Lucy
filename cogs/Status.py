@@ -6,16 +6,16 @@ import spotipy
 import animeflv
 import steam_web_api
 
+import common.activies
+
 from discord.ext import commands
 class Status(commands.Cog):
     def __init__(self, Lucy):
         self.Lucy:commands.Bot = Lucy
-        self.activities = ["📺", "🎧", "🎮"]
-
-        self.spotify = None
+        self.activities = ["📺", "🎧", "🎮", "✏️"]
 
     def auth_and_get_playlist(self) -> list[dict]:
-        self.spotify = spotipy.Spotify(
+        sp = spotipy.Spotify(
             auth_manager = spotipy.oauth2.SpotifyClientCredentials(
                 client_id = os.getenv("SPOTIPY_CLIENT_ID"),
                 client_secret = os.getenv("SPOTIPY_CLIENT_SECRET"),
@@ -25,7 +25,7 @@ class Status(commands.Cog):
             )
         )
 
-        playlist = self.spotify.playlist_tracks(
+        playlist = sp.playlist_tracks(
             os.getenv("SPOTIPY_PLAYLIST_URL")
         )["items"]
         
@@ -46,6 +46,9 @@ class Status(commands.Cog):
 
         elif activity == "🎮":
             await self.game()
+
+        elif activity == "✏️":
+            await self.custom()
 
         await self.choose_activity()
 
@@ -112,6 +115,18 @@ class Status(commands.Cog):
             )
         )
         await asyncio.sleep(random.randint(600, 3600))
+
+    async def custom(self):
+        data = common.activies.read_json_file("./common/status")
+        emoji = random.choice(list(data.keys()))
+        status = random.choices(data[emoji])[0]
+
+        await self.Lucy.change_presence(
+            activity = discord.CustomActivity(
+                name = f"{emoji} {status}"
+            )
+        )
+        await asyncio.sleep(random.randint(300, 3600))
 
 async def setup(Lucy):
     await Lucy.add_cog(Status(Lucy))

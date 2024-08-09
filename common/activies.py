@@ -1,5 +1,6 @@
 import shutil
 import os
+import json
 
 from github import Github
 
@@ -20,3 +21,10 @@ def get_terminal_size() -> int:
 def draw_spliter(text:str = "", char:str = "-"):
     size = get_terminal_size()
     print(text.center(size, char))
+
+def read_json_file(path:str) -> dict:
+    path += ".json"
+    with open(path, encoding = "utf-8") as f:
+        data = json.load(f)
+
+    return data
