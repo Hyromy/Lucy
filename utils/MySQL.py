@@ -1,6 +1,3 @@
-from dotenv import load_dotenv
-load_dotenv("config.env")
-
 import os
 import shutil
 import mysql
@@ -33,7 +30,7 @@ class MySQLHelper:
     def get_cursor(self) -> mysql.connector.cursor.MySQLCursor:
         return self.conn.cursor()
     
-    def export_db(self, output_file:str = "") -> None:
+    def export_db(self, output_file = "") -> None:
         output_file += ".sql"
 
         cursor = self.get_cursor()
@@ -58,20 +55,16 @@ class MySQLHelper:
                 f.write("\n")
 
         cursor.close()
-        print(f"Base de datos exportada a {output_file}")
 
-    def import_db(self, input_file:str, drop_tables:bool = True) -> None:
+    def import_db(self, input_file:str, drop_tables = True, delete_file = True) -> None:
         if not os.path.exists(input_file):
-            print("El archivo no existe")
             return
         
         elif not input_file.endswith(".sql"):
-            print("El archivo debe ser un archivo SQL")
             return
         
         if drop_tables:
             self.drop_tables()
-            print("Tablas previas eliminadas")
 
         cursor = self.get_cursor()
         with open(input_file, 'r') as f:
@@ -81,7 +74,9 @@ class MySQLHelper:
                     cursor.execute(command)
 
         cursor.close()
-        print(f"Base de datos importada desde {input_file}")
+
+        if delete_file:
+            os.remove(input_file)
 
     def drop_tables(self) -> None:
         cursor = self.get_cursor()
@@ -139,7 +134,10 @@ class MySQLHelper:
                 cursor.execute(f"SELECT * FROM {tb_name}")
                 logs = cursor.fetchall()
 
-                data = {}
+                data = {
+                    "data": self.table_sql_to_json_data(tb_name)
+                }
+
                 atributes = self.get_atributes(tb_name)
                 for log in logs:
                     atribute = {}
@@ -152,8 +150,73 @@ class MySQLHelper:
                 json.dump(data, f, indent = 4)
                 cursor.close()
 
+    def table_sql_to_json_data(self, table_name:str) -> dict:
+        cursor = self.get_cursor()
+        cursor.execute(f"SHOW COLUMNS FROM {table_name}")
+        columns = cursor.fetchall()
+
+        data = {}
+        for column in columns:
+            sentencce = column[1].upper()
+            if column[2] == "NO":
+                sentencce += " NOT NULL"
+            if column[3] == "PRI":
+                sentencce += " PRIMARY KEY"
+            if column[4] != None:
+                sentencce += f" DEFAULT '{column[4]}'"
+            if column[5] == "auto_increment":
+                sentencce += " AUTO_INCREMENT"
+
+            data[column[0]] = sentencce
+        return data
+
     def reload_db_cache(self) -> None:
         if os.path.exists("dbcache"):
             shutil.rmtree("dbcache")
 
         self.db_to_cache()
+
+    def create_table(self, table_name:str, columns:tuple[str]) -> None:
+        if table_name in self.get_tables_name():
+            return
+        
+        cursor = self.get_cursor()
+        query = f"CREATE TABLE {table_name} ("
+        for column in columns:
+            query += f"{column}, "
+        query = query[:-2] + ")"
+
+        cursor.execute(query)
+        cursor.close()
+
+    def insert(self, table_name:str, atr:tuple[str], values:tuple) -> None:
+        atr = str(atr).replace("'", "")
+        
+        cursor = self.get_cursor()
+        query = f"INSERT INTO {table_name} {atr} VALUES {values}"
+
+        cursor.execute(query)
+        cursor.close()
+
+    def build_from_cache(self, table_name:str) -> None:
+        if not os.path.exists(f"dbcache/{table_name}.json"):
+            return
+
+        with open(f"dbcache/{table_name}.json", "r") as f:
+            data = json.load(f)
+
+        for key, value in data.items():
+            if (key == "data"):
+                colums = list(value)
+                for i, atr in enumerate(colums):
+                    colums[i] = f"{atr} {value[atr]}"
+                self.create_table(table_name, tuple(colums))                
+
+            else:
+                atr = list(value)
+                atr.insert(0, "id")
+
+                values = list(value.values())
+                values.insert(0, key)
+                
+                self.insert(table_name, tuple(atr), tuple(values))

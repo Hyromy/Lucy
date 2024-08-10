@@ -10,8 +10,8 @@ import common.activies
 
 from discord.ext import commands
 class Status(commands.Cog):
-    def __init__(self, Lucy):
-        self.Lucy:commands.Bot = Lucy
+    def __init__(self, Lucy:commands.Bot):
+        self.Lucy = Lucy
         self.activities = ["📺", "🎧", "🎮", "✏️"]
 
     def auth_and_get_playlist(self) -> list[dict]:

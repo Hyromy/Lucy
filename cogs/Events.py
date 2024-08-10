@@ -4,8 +4,8 @@ import os
 from discord.ext import commands
 
 class Events(commands.Cog):
-    def __init__(self, Lucy):
-        self.Lucy:commands.Bot = Lucy
+    def __init__(self, Lucy:commands.Bot):
+        self.Lucy = Lucy
 
     @commands.Cog.listener()
     async def on_message(self, message:discord.Message):
