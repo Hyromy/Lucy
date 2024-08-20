@@ -8,12 +8,25 @@ import common
 from discord.ext import commands
 from dotenv import load_dotenv
 
-import common.activies
-import common.clock
+from utils.SQL import SQLHelper
+
 load_dotenv("config.env")
 
+print("Conectando a la base de datos...")
+sql = SQLHelper()
+sql.load_cache(True)
+sql.close_conection()
+del sql
+
+def get_prefix(Lucy, message) -> str:
+    prefix = common.activies.read_json_file("dbcache/server")
+    return prefix[str(message.guild.id)]["prefix"]
+
 intents = discord.Intents.all()
-Lucy = commands.Bot(command_prefix = ",", intents = intents)
+Lucy = commands.Bot(
+    command_prefix = get_prefix,
+    intents = intents
+)
 
 def ready_msg():    
     common.activies.draw_spliter(text = "")

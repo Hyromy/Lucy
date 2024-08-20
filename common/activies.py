@@ -28,3 +28,8 @@ def read_json_file(path:str) -> dict:
         data = json.load(f)
 
     return data
+
+def write_json_file(path:str, data:dict):
+    path += ".json"
+    with open(path, "w", encoding = "utf-8") as f:
+        json.dump(data, f, indent = 4)
