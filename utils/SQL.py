@@ -10,18 +10,23 @@ class SQLHelper:
         self.connect()
 
     def connect(self) -> None:
-        self.__conn = mysql.connector.connect(
-            port = os.getenv("MYSQL_PORT"),
-            host = os.getenv("MYSQL_HOST"),
-            user = os.getenv("MYSQL_USER"),
-            password = os.getenv("MYSQL_PASSWORD"),
-            database = os.getenv("MYSQL_DATABASE"),
-            charset = "utf8mb4",
-            collation = "utf8mb4_unicode_ci",
-            raise_on_warnings = True
-        )
+        try:
+            self.__conn = mysql.connector.connect(
+                port = os.getenv("MYSQL_PORT"),
+                host = os.getenv("MYSQL_HOST"),
+                user = os.getenv("MYSQL_USER"),
+                password = os.getenv("MYSQL_PASSWORD"),
+                database = os.getenv("MYSQL_DATABASE"),
+                charset = "utf8mb4",
+                collation = "utf8mb4_unicode_ci",
+                raise_on_warnings = True
+            )
 
-        self.__conn.autocommit = True
+            self.__conn.autocommit = True
+
+        except Exception as e:
+            msg = "No se pudo conectar a la base de datos"
+            print(f"\t(!!) {msg} -> {e.__cause__}")
     
     def close_conection(self) -> None:
         self.__conn.close()

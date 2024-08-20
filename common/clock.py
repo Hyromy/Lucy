@@ -3,6 +3,8 @@ import datetime
 import pytz
 import asyncio
 
+from utils.SQL import SQLHelper
+
 from .activies import draw_spliter
 
 def _minutes():
@@ -15,6 +17,16 @@ def _days():
     current = datetime.datetime.now(pytz.timezone("America/Mexico_City"))
     date = current.strftime(" %d/%m/%Y ")
     draw_spliter(text = date)
+
+    sql = SQLHelper()
+    try:
+        sql.build_from_cache()
+    except:
+        sql.load_cache(True)
+        sql.build_from_cache()
+    finally:
+        sql.close_conection()
+    del sql
 
 async def _clock_minute():
     while True:
