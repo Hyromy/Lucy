@@ -128,5 +128,5 @@ class Status(commands.Cog):
         )
         await asyncio.sleep(random.randint(300, 3600))
 
-async def setup(Lucy):
+async def setup(Lucy:commands.Bot):
     await Lucy.add_cog(Status(Lucy))

@@ -35,7 +35,22 @@ async def on_ready():
     ready_msg()
     common.clock.start_clock()
 
+async def load_admin_cogs():
+    print("COGS DE ADMINISTRACIÓN")
+    for file in os.listdir("admin_cogs"):
+        if file.endswith(".py"):
+            try:
+                cog_name = file[:-3]
+                print(f"Cargando {cog_name}...")
+                await Lucy.load_extension(f"admin_cogs.{cog_name}")
+
+            except Exception as e:
+                msg = f"(!) {cog_name} no se pudo cargar -> {e}"
+                print(msg)
+    print()
+
 async def load_cogs():
+    print("COGS")
     for file in os.listdir("cogs"):
         if file.endswith(".py"):
             try:
@@ -46,9 +61,11 @@ async def load_cogs():
             except Exception as e:
                 msg = f"(!) {cog_name} no se pudo cargar -> {e}"
                 print(msg)
+    print()
     
 async def main():
     async with Lucy:
+        await load_admin_cogs()
         await load_cogs()
         await Lucy.start(os.getenv("DISCORD_BOT_TOKEN"))
 

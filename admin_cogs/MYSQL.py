@@ -7,9 +7,9 @@ from utils.SQL import SQLHelper
 
 from discord.ext import commands
 
-class MySQL(commands.Cog):
-    def __init__(self, bot:commands.Bot):
-        self.bot = bot
+class MYSQL(commands.Cog):
+    def __init__(self, Lucy:commands.Bot):
+        self.Lucy = Lucy
 
     async def generic_error(self, ctx:commands.Context, error:commands.CommandError):
         current = datetime.datetime.now(pytz.timezone("America/Mexico_City"))
@@ -91,5 +91,5 @@ class MySQL(commands.Cog):
     async def sqlbuildfromcache_error(self, ctx:commands.Context, error:commands.CommandError):
         await self.generic_error(ctx, error)
 
-async def setup(bot:commands.Bot):
-    await bot.add_cog(MySQL(bot))
+async def setup(Lucy:commands.Bot):
+    await Lucy.add_cog(MYSQL(Lucy))
