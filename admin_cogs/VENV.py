@@ -3,11 +3,17 @@ import os
 
 from discord.ext import commands
 
-class ENV(commands.Cog):
+class VENV(commands.Cog):
     def __init__(self, Lucy:commands.Bot):
         self.Lucy = Lucy
+        self.description = "Variables de entorno"
+        self.emoji = "🔒"
 
-    @commands.command()
+    @commands.command(
+        name = "env",
+        help = "Muestra las variables de entorno por md",
+        usage = "env"
+    )
     async def env(self, ctx:commands.Context):
         if ctx.author.id != int(os.getenv("OWNER_ID")):
             return
@@ -22,7 +28,7 @@ class ENV(commands.Cog):
             env = f.readlines()
 
         for tokens in env:
-            key, value = tokens.split("=")
+            key, value = tokens.split("=", 1)
 
             if value.endswith("\n"):
                 value = value[:-1]
@@ -39,5 +45,10 @@ class ENV(commands.Cog):
             delete_after = 60
         )
 
+    @env.error
+    async def env_error(self, ctx:commands.Context, error):
+        print(error)
+        await ctx.message.add_reaction("❌")        
+
 async def setup(Lucy:commands.Bot):
-    await Lucy.add_cog(ENV(Lucy))
+    await Lucy.add_cog(VENV(Lucy))

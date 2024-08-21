@@ -8,6 +8,7 @@ from common import activies
 class Events(commands.Cog):
     def __init__(self, Lucy:commands.Bot):
         self.Lucy = Lucy
+        self.description = "Eventos básicos"
 
     @commands.Cog.listener()
     async def on_message(self, message:discord.Message):

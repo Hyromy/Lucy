@@ -13,6 +13,7 @@ class Status(commands.Cog):
     def __init__(self, Lucy:commands.Bot):
         self.Lucy = Lucy
         self.activities = ["📺", "🎧", "🎮", "✏️"]
+        self.description = "Estados de Lucy"
 
     def auth_and_get_playlist(self) -> list[dict]:
         sp = spotipy.Spotify(
