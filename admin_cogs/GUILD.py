@@ -8,6 +8,7 @@ class GUILD(commands.Cog):
         self.Lucy = Lucy
         self.description = "Gestión de servidores"
         self.emoji = "🏠"
+        self.admin = True
 
     @commands.command(
         name = "guilds",

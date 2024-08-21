@@ -12,6 +12,7 @@ class SQL(commands.Cog):
         self.Lucy = Lucy
         self.description = "Administración de la base de datos"
         self.emoji = "🗄️"
+        self.admin = True
 
     async def generic_error(self, ctx:commands.Context, error:commands.CommandError):
         current = datetime.datetime.now(pytz.timezone("America/Mexico_City"))

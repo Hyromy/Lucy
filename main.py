@@ -28,7 +28,10 @@ class Help(commands.HelpCommand):
         embed.set_thumbnail(url = self.context.bot.user.avatar)
 
         for cog in mapping.keys():
-            if cog is None or mapping[cog] == []:
+            if (cog is None or
+                mapping[cog] == [] or
+                hasattr(cog, "admin")
+            ):
                 continue
 
             emoji = cog.emoji if hasattr(cog, "emoji") else ""
@@ -42,6 +45,11 @@ class Help(commands.HelpCommand):
 
     # help <categoria>
     async def send_cog_help(self, cog):
+        if (self.context.author.id != int(os.getenv("OWNER_ID")) and
+            hasattr(cog, "admin")
+        ):
+            return
+
         embed = discord.Embed(
             title = f"Categoría: {cog.qualified_name}",
             description = cog.description,
@@ -60,6 +68,11 @@ class Help(commands.HelpCommand):
 
     # help <comando>
     async def send_command_help(self, command:commands.Command):
+        if (self.context.author.id != int(os.getenv("OWNER_ID")) and
+            hasattr(command.cog, "admin")
+        ):
+            return
+
         prefix = get_prefix(self.context.bot, self.context.message)
         
         embed = discord.Embed(

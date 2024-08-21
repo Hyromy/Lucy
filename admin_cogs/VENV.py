@@ -8,6 +8,7 @@ class VENV(commands.Cog):
         self.Lucy = Lucy
         self.description = "Variables de entorno"
         self.emoji = "🔒"
+        self.admin = True
 
     @commands.command(
         name = "env",
