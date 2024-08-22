@@ -14,116 +14,18 @@ from utils.SQL import SQLHelper
 
 load_dotenv("config.env")
 
-class Help(commands.HelpCommand):
-    def __init__(self):
-        super().__init__()
-
-    # help
-    async def send_bot_help(self, mapping:dict):
-        embed = discord.Embed(
-            title = "Comandos de Lucy",
-            description = "Estos son los comandos que puedes usar con Lucy",
-            color = 0x00bbff
-        )
-        embed.set_thumbnail(url = self.context.bot.user.avatar)
-
-        for cog in mapping.keys():
-            if (cog is None or
-                mapping[cog] == [] or
-                hasattr(cog, "admin")
-            ):
-                continue
-
-            emoji = cog.emoji if hasattr(cog, "emoji") else ""
-            embed.add_field(
-                name = f"{cog.qualified_name} {emoji}",
-                value = cog.description or "",
-                inline = False
-            )
-            
-        await self.context.send(embed = embed)
-
-    # help <categoria>
-    async def send_cog_help(self, cog):
-        if (self.context.author.id != int(os.getenv("OWNER_ID")) and
-            hasattr(cog, "admin")
-        ):
-            return
-
-        embed = discord.Embed(
-            title = f"Categoría: {cog.qualified_name}",
-            description = cog.description,
-            color = 0x00bbff
-        )
-
-        cmds = cog.get_commands()
-        cmds = sorted(cmds, key = lambda x:x.name)
-        for command in cmds:
-            embed.add_field(
-                name = command.name,
-                value = ""
-            )
-
-        await self.context.send(embed = embed)
-
-    # help <comando>
-    async def send_command_help(self, command:commands.Command):
-        if (self.context.author.id != int(os.getenv("OWNER_ID")) and
-            hasattr(command.cog, "admin")
-        ):
-            return
-
-        prefix = get_prefix(self.context.bot, self.context.message)
-        
-        embed = discord.Embed(
-            title = f"{command.cog_name}: {command.name}",
-            description = command.help,
-            color = 0x00bbff
-        )
-        if command.aliases:
-            embed.add_field(
-                name = "Alias",
-                value = ", ".join(command.aliases),
-                inline = False
-            )
-        embed.add_field(
-            name = "Ejemplo de uso",
-            value = f"`{prefix}{command.usage}`",
-            inline = False
-        )
-
-        await self.context.send(embed = embed)
-
-    async def command_not_found(self, string):
-        pass
-
-print("Conectando a la base de datos...")
 sql = SQLHelper()
 sql.load_cache(True)
 sql.close_conection()
 del sql
 
-def get_prefix(Lucy, message) -> str:
-    prefix = activies.read_json_file("dbcache/server")
-    return prefix[str(message.guild.id)]["prefix"]
-
 intents = discord.Intents.all()
 
-class LUCY(commands.Bot):
-    def __init__(self):
-        super().__init__(
-            command_prefix = get_prefix,
-            intents = intents,
-            help_command = Help()
-        )
-
-    def get_cog(self, name:str):
-        for cog_name, cog in self.cogs.items():
-            if cog_name.lower() == name.lower():
-                return cog
-        return None
-
-Lucy = LUCY()
+Lucy = commands.Bot(
+    command_prefix = activies.get_prefix,
+    intents = intents,
+    help_command = None
+)
 
 def ready_msg():    
     activies.draw_spliter()
@@ -142,6 +44,7 @@ def ready_msg():
 
 @Lucy.event
 async def on_ready():
+    await Lucy.tree.sync()
     ready_msg()
     clock.start_clock()
 

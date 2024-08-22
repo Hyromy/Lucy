@@ -33,3 +33,7 @@ def write_json_file(path:str, data:dict):
     path += ".json"
     with open(path, "w", encoding = "utf-8") as f:
         json.dump(data, f, indent = 4)
+
+def get_prefix(Lucy, message) -> str:
+    prefix = read_json_file("dbcache/server")
+    return prefix[str(message.guild.id)]["prefix"]
