@@ -1,0 +1,38 @@
+name: new release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: configurando python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: actualizar pip
+      run: python -m pip install --upgrade pip
+
+    - name: run script
+      id: script
+      run: python new_release.py
+    
+    - name: lanzar release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: ${{ steps.script.outputs.release_name }}
+        body: ${{ steps.script.outputs.release_body }}
+        draft: false
+        prerelease: false
