@@ -3,7 +3,7 @@ import os
 
 from discord.ext import commands
 
-from common.activies import get_prefix
+from common.activies import get_prefix, read_json_file
 
 class Info(commands.Cog):
     def __init__(self, Lucy:commands.Bot):
@@ -209,9 +209,40 @@ class Info(commands.Cog):
             embed.add_field(name = "Días de boost", value = f"{boost_total_days} *(A:{boost_years} M:{boost_months} D:{boost_days})*")
 
         embed.add_field(name = "Roles", value = len(usuario.roles) - 1)
-
-        embed.add_field(name = "Permisos", value = sum(perm[1] for perm in usuario.guild_permissions if perm[1]))
         
+        await ctx.reply(embed = embed)
+        
+    @commands.hybrid_command(
+        name = "userpermissions",
+        help = "Muestra los permisos disponibles del usuario",
+        aliases = ["upermissions", "uperms"],
+        usage = "userpermissions [@usuario]"
+    )
+    async def userpermissions(self, ctx:commands.Context, usuario:discord.Member = None):
+        translations = read_json_file("json/translate/user_permissions")
+        perms = []
+
+        usuario = usuario or ctx.author
+        permissions = [perm[0] for perm in usuario.guild_permissions if perm[1]]
+            
+        for key, value in translations.items():
+            if key in permissions:
+                perms.append(value)
+        perms.sort()
+
+        embed = discord.Embed(
+            title = f"Permisos de: {usuario.display_name} ({len(permissions)})",
+            color = 0x00bbff
+        )
+        embed.set_thumbnail(url = usuario.avatar.url if usuario.avatar else usuario.default_avatar.url)
+        for i in range(3):
+            s = i * len(perms) // 3
+            e = (len(perms) // 3) * (i + 1) if i < 2 else len(perms)
+            embed.add_field(
+                name = "",
+                value = f"- {"\n- ".join(perms[s:e])}"
+            )
+
         await ctx.reply(embed = embed)
 
 async def setup(Lucy:commands.Bot):

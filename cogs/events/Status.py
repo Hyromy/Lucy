@@ -118,7 +118,7 @@ class Status(commands.Cog):
         await asyncio.sleep(random.randint(600, 3600))
 
     async def custom(self):
-        data = common.activies.read_json_file("./common/status")
+        data = common.activies.read_json_file("./json/status")
         emoji = random.choice(list(data.keys()))
         status = random.choices(data[emoji])[0]
 
