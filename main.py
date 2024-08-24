@@ -3,6 +3,7 @@ import os
 import asyncio
 import datetime
 import pytz
+import re
 
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -48,42 +49,36 @@ async def on_ready():
     ready_msg()
     clock.start_clock()
 
-async def load_admin_cogs():
-    print("COGS DE ADMINISTRACIÓN")
-    for file in os.listdir("admin_cogs"):
-        if file.endswith(".py"):
-            try:
-                cog_name = file[:-3]
-                print(f"Cargando {cog_name}...")
-                await Lucy.load_extension(f"admin_cogs.{cog_name}")
-
-            except Exception as e:
-                msg = f"(!) {cog_name} no se pudo cargar -> {e}"
-                print(msg)
-    print()
-
 async def load_cogs():
-    print("COGS")
-    for file in os.listdir("cogs"):
-        if file.endswith(".py"):
-            try:
-                cog_name = file[:-3]
-                print(f"Cargando {cog_name}...")
-                await Lucy.load_extension(f"cogs.{cog_name}")
+    DIR = "cogs"
+    dunder_re = r"__.*__"
+    folders = [f for f in os.listdir(DIR) if os.path.isdir(os.path.join(DIR, f)) and not re.match(dunder_re, f)]
+    for folder in folders:
+        print(f"---- {folder.upper()} ----")
+        for file in os.listdir(f"{DIR}/{folder}"):
+            if re.match(dunder_re + ".py", file):
+                continue
 
-            except Exception as e:
-                msg = f"(!) {cog_name} no se pudo cargar -> {e}"
-                print(msg)
-    print()
-    
+            if file.endswith(".py"):
+                try:
+                    cog_name = file[:-3]
+                    await Lucy.load_extension(f"{DIR}.{folder}.{cog_name}")
+
+                except Exception as e:
+                    print(f"\t(!) {cog_name} no se pudo cargar -> {e}")
+
+                else:
+                    print(f"{cog_name} cargado")
+        print()
+
 async def main():
-    async with Lucy:
-        await load_admin_cogs()
-        await load_cogs()
-        await Lucy.start(os.getenv("DISCORD_BOT_TOKEN"))
+    try:
+        async with Lucy:
+            await load_cogs()
+            await Lucy.start(os.getenv("DISCORD_BOT_TOKEN"))
+    
+    except Exception as e:
+        print(f"\t(!)Error al intentar conectar -> {e}")
+        return
 
-try:
-    asyncio.run(main())
-
-except:
-    print("Error al intentar conectar")
+asyncio.run(main())
