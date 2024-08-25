@@ -23,7 +23,7 @@ jobs:
 
     - name: run script
       id: script
-      run: python new_release.py
+      run: python ./.github/workflows/new_release.py
     
     - name: lanzar release
       uses: actions/create-release@v1
