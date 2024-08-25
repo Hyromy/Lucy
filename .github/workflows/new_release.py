@@ -6,7 +6,8 @@ def get_name(data:str) -> str | None:
 
 def get_body(data:str) -> str | None:
     body_re = r"<!--.*-->"
-    return sub(body_re, "", data).strip() if search(body_re, data) else None
+    body = sub(body_re, "", data).strip() if search(body_re, data) else None
+    return body.replace("\n", "\\n")
 
 def run():
     with open("./releases.md", "r", encoding = "utf-8") as f:
