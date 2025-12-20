@@ -1,0 +1,32 @@
+name: Deploy in VPS
+
+on:
+  workflow_dispatch:
+
+  workflow_run:
+    workflows: ["Push Docker Image"]
+    types:
+      - completed
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ vars.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            docker login -u ${{ vars.DOCKER_USER }} -p ${{ secrets.DOCKER_TOKEN }}
+            docker stop ${{ vars.DOCKER_CONTAINER }} || true
+            docker rm ${{ vars.DOCKER_CONTAINER }} || true
+            docker rmi -f ${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE }}:latest || true
+            docker pull ${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE }}:latest
+            docker run -d --name '${{ vars.DOCKER_CONTAINER }}' \
+              -e 'PRODUCTION=True' \
+              -e 'DISCORD_BOT_TOKEN=${{ secrets.DISCORD_BOT_TOKEN }}' \
+              -e 'OWNER_ID=${{ vars.OWNER_ID }}' \
+              '${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE }}:latest'
