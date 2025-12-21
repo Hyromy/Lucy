@@ -1,23 +1,24 @@
 from os import getenv, listdir
 from re import match as re_match
 
-from discord import Intents, Object
+from discord import Intents, Object, User
 from discord.ext.commands import Bot
 
 from .Printer import Printer
 
 class Lucy(Bot):
     def __init__(self):
-        self._printer = Printer()
-
-        self.PRODUCTION = getenv("PRODUCTION", "False") == "True"
-        self.TESTING_GUILD_ID = getenv("TESTING_GUILD_ID")
-
         super().__init__(
             command_prefix = "!",
             intents = Intents.default()
         )
 
+        self.PRODUCTION: bool = getenv("PRODUCTION", "False") == "True"
+        self.TESTING_GUILD_ID: str = getenv("TESTING_GUILD_ID")
+        self.OWNER: User = None
+        self.VERSION: str = None
+
+        self._printer = Printer()
         self._printer.info(f"Running in {'PRODUCTION' if self.PRODUCTION else 'DEBUG'} mode.")        
 
     async def load_cogs(self, dir: str = "modules"):
@@ -70,4 +71,9 @@ class Lucy(Bot):
         self._printer.info("Command sync completed.")
 
     async def start(self):
-        await super().start(getenv("DISCORD_BOT_TOKEN"))
+        await super().start(getenv(
+            ("" if self.PRODUCTION else "TESTING_") + "DISCORD_BOT_TOKEN"
+        ))
+
+    async def close(self):
+        await super().close()

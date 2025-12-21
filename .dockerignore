@@ -120,6 +120,7 @@ secrets.json
 *.log
 
 .vscode/
+/*test.py
 
 # Docker
 .github/

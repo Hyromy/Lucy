@@ -25,16 +25,20 @@ requirements.txt    # Dependencias
 
 ## Variables de entorno
 
-Es necesario configurar `DISCORD_BOT_TOKEN` y `TESTING_GUILD_ID` si es que `PRODUCTION=False`.
+Para el caso de que `PRODUCTION=True`, solo debe de configurarse como mínimo `DISCORD_BOT_TOKEN`.
+
+Por otro lado es necesario configurar `TESTING_DISCORD_BOT_TOKEN` y `TESTING_GUILD_ID`.
 
 Obtén tu Token en [Discord Developer Portal](https://discord.com/developers/applications)
+
+Configura las variables de entorno creando en la raíz del proyecto un archivo nombrado `.env` y establece las claves necesarias
 
 | Clave | Valor por defecto | Descripción |
 | - | - | - |
 | `PRODUCTION` | `False` | Establece si el modo es de producción |
-| `DISCORD_BOT_TOKEN` | `None` | Token del bot |
+| `DISCORD_BOT_TOKEN` | `None` | Token del bot  de producción |
+| `TESTING_DISCORD_BOT_TOKEN` | `None` | Token del bot de pruebas |
 | `TESTING_GUILD_ID` | `None` | Id de servidor de pruebas a sincronizar |
-| `OWNER_ID` | `None` | Id del dueño del bot |
 
 ## Despliegue
 

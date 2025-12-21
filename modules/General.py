@@ -19,6 +19,8 @@ class General(Cog):
         self.lucy = lucy
 
         self.show = True
+        self.icon = "🌐"
+        self.description = "General commands for all users."
 
     @app_commands.command(name = "ping", description = "Check the bot's latency.")
     async def ping(self, interaction:Interaction):
@@ -35,20 +37,19 @@ class General(Cog):
         await interaction.response.defer()
 
         if not category:
-            return await interaction.followup.send(
-                embed = general_help_embed(self.lucy),
-                view = GeneralHelpView(self.lucy)
-            )
+            embed = general_help_embed(self.lucy)
+            view = GeneralHelpView(self.lucy, interaction.user)
+            view.msg = await interaction.followup.send(embed = embed, view = view)
+            return
 
-        await interaction.followup.send(
-            embed = cog_help_embed(
-                self.lucy.get_cog(category),
-            ),
-            view = CommandHelpView(self.lucy)
-        )
+        embed = cog_help_embed(self.lucy.get_cog(category), self.lucy)
+        view = CommandHelpView(self.lucy, interaction.user)
+        view.msg = await interaction.followup.send(embed = embed, view = view)
 
     @help.autocomplete(name = "category")
-    async def help_autocomplete(self, interaction:Interaction, current:str):
+    async def help_autocomplete(self, interaction:Interaction,
+        current: str
+    ):
         return [
             app_commands.Choice(
                 name = f"{getattr(cog, "icon", "")} {cog.__cog_name__}",
@@ -61,5 +62,5 @@ class General(Cog):
             )
         ][:25]
 
-async def setup(lucy:Lucy):
+async def setup(lucy: Lucy):
     await lucy.add_cog(General(lucy))

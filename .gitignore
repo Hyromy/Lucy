@@ -120,3 +120,5 @@ secrets.json
 *.log
 
 .vscode/
+notes.md
+/*test.py
