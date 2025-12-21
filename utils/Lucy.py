@@ -1,6 +1,7 @@
 from os import getenv, listdir
 from re import match as re_match
 
+from aiohttp import ClientSession
 from discord import Intents, Object, User
 from discord.ext.commands import Bot
 
@@ -32,7 +33,7 @@ class Lucy(Bot):
                 await self.load_extension(f"{dir}.{filename}")
             
             except Exception as e:
-                self._printer.error(f"Failed to load cog {filename}: {e}")
+                self._printer.error(f"Failed to load cog {filename}: {e}", e)
                 failed += 1
             
             else:
@@ -45,15 +46,15 @@ class Lucy(Bot):
         def ok():
             self._printer.ok("Commands synced successfully.")
 
-        def error(error_msg: str):
-            self._printer.error(f"Failed to sync commands: {error_msg}")
+        def error(error_msg: str, e: Exception):
+            self._printer.error(f"Failed to sync commands: {error_msg}", e)
 
         self._printer.operation("Syncing application commands")
         if self.PRODUCTION:
             try:
                 await self.tree.sync()
             except Exception as e:
-                error(e)            
+                error(str(e), e)            
             else:
                 ok()
         else:
@@ -63,12 +64,43 @@ class Lucy(Bot):
                     self.tree.copy_global_to(guild = guild)
                     await self.tree.sync(guild = guild)
                 except Exception as e:
-                    error(e)
+                    error(str(e), e)
                 else:
                     ok()
             else:
                 self._printer.warn("TESTING_GUILD_ID in env is not set. Cannot sync test commands.")
         self._printer.info("Command sync completed.")
+
+    async def sync_owner(self):
+        try:
+            self.OWNER = (await self.application_info()).owner
+        except Exception as e:
+            self._printer.error(f"Failed to set OWNER: {e}", e)
+        else:
+            self._printer.ok(f"OWNER set to {self.OWNER}.")
+
+    async def sync_version(self):
+        url = getenv("RELEASES_URL")
+        if url:
+            headers = {}
+            github_token = getenv("GITHUB_TOKEN")
+            if github_token:
+                headers["Authorization"] = f"token {github_token}"
+            else:
+                self._printer.warn("GITHUB_TOKEN not found in env; proceeding unauthenticated may lead to rate limiting.")
+
+            session = ClientSession()
+            try:
+                async with session.get(url, headers = headers) as response:
+                    if response.status == 200:
+                        self.VERSION = (await response.json())["tag_name"]
+                        self._printer.ok(f"Version set to {self.VERSION}.")
+                    else:
+                        self._printer.error(f"Failed to fetch version info: HTTP {response.status}, {response.reason}.", Exception(f"HTTP {response.status}"))
+            finally:
+                await session.close()
+        else:
+            self._printer.warn("No RELEASES_URL found; version info will be unavailable.")
 
     async def start(self):
         await super().start(getenv(
