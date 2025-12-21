@@ -23,7 +23,7 @@ def possessive(word: str, lang: str = "en") -> str:
         case _:
             return word
 
-def get_linear_json_value(composed_key: str, json_path: str = "data/slash_cmds_id.json") -> Any | None:
+def get_linear_json_value(composed_key: str, json_path: str) -> Any | None:
     """Retrieves the value from a JSON file based on the composed key (split by dots).
     Args:
         composed_key (str): The composed key in the format "Category.Command.Environment".
@@ -33,7 +33,7 @@ def get_linear_json_value(composed_key: str, json_path: str = "data/slash_cmds_i
         (str | None): The slash command ID if found, otherwise None.
     
     Example:
-        If the JSON file contains:
+        If the JSON file `data/slash_cmds_id.json` contains:
         ```
         {
             "general": {
@@ -44,10 +44,11 @@ def get_linear_json_value(composed_key: str, json_path: str = "data/slash_cmds_i
             }
         }
         ```
-        Then calling `get_slash_cmd_id("general.ping.test")` will return `"123"`.
+        Then calling `get_slash_cmd_id("general.ping.test", "data/slash_cmds_id")` will return `"123"`.
     """
     assert isinstance(composed_key, str), "composed_key must be a string"
     assert isinstance(json_path, str), "json_path must be a string"
+    json_path += ".json" if not json_path.endswith(".json") else ""
 
     with open(json_path, "r", encoding="utf-8") as f:
         data = load(f)
@@ -60,3 +61,16 @@ def get_linear_json_value(composed_key: str, json_path: str = "data/slash_cmds_i
         else:
             return None
     return current_level if isinstance(current_level, str) else None
+
+def get_supported_languages(json_path: str = "lang/_settings.json") -> dict:
+    """Retrieves the list of supported languages from the settings JSON file.
+    Args:
+        json_path (str, optional): The path to the settings JSON file. Defaults to "lang/_settings.json".
+    
+    Returns:
+        dict: A dictionary of supported languages.
+    """
+    assert isinstance(json_path, str), "json_path must be a string"
+
+    with open(json_path, "r", encoding="utf-8") as f:
+        return load(f)

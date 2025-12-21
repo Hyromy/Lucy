@@ -32,7 +32,10 @@ def general_help_embed(lucy: Lucy) -> Embed:
         if getattr(cog, "show", False)
     ]))
     random_cmd = choice(list(random_cog.get_app_commands()))
-    cmd_id = get_linear_json_value(f"general.help.{'prod' if lucy.PRODUCTION else 'test'}") or 0
+    cmd_id = get_linear_json_value(
+        f"general.help.{'prod' if lucy.PRODUCTION else 'test'}",
+        "data/slash_cmds_id"
+    ) or 0
 
     embed = Embed(
         color = Color.blurple(),
@@ -73,7 +76,10 @@ def cog_help_embed(cog: Cog, lucy: Lucy) -> Embed:
             arg_str = "`" + (f"({name})" if is_optional else f"<{name}>") + "`"
             args.append(arg_str)
 
-        cmd_id = get_linear_json_value(f"{cog.__cog_name__.lower()}.{cmd.name}.{'prod' if lucy.PRODUCTION else 'test'}") or 0
+        cmd_id = get_linear_json_value(
+            f"{cog.__cog_name__.lower()}.{cmd.name}.{'prod' if lucy.PRODUCTION else 'test'}",
+            "data/slash_cmds_id"
+        ) or 0
         embed.add_field(
             name = f"</{cmd.name}:{cmd_id}> {' '.join(args) if args else ''}",
             value = cmd.description or "No hay descripción disponible.",
@@ -91,7 +97,7 @@ async def time_out(view: View):
         except NotFound:
             pass
         except Exception as e:
-            Printer().error(f"Failed to delete help message on timeout: {e}")
+            Printer().error(f"Failed to delete help message on timeout: {e}", e)
 
 async def invasor_interaction(interaction: Interaction):
     await interaction.response.send_message(
