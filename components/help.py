@@ -22,7 +22,7 @@ from utils.Printer import Printer
 
 def footer_embed(embed: Embed, lucy: Lucy):
     embed.set_footer(
-        text = f"Developed by {lucy.OWNER.name} | {lucy.user.name} v{lucy.VERSION}",
+        text = f"Developed by {lucy.OWNER.name} | {lucy.user.name} {lucy.VERSION or ""}",
         icon_url = lucy.OWNER.display_avatar.url
     )
 

@@ -1,3 +1,6 @@
+from os import getenv
+
+from aiohttp import ClientSession
 from discord.ext import commands
 
 from utils.Lucy import Lucy
@@ -10,6 +13,12 @@ class Events(commands.Cog):
     async def on_ready(self):
         await self.lucy.sync_commands()
         self.lucy.OWNER = (await self.lucy.application_info()).owner
+        url = getenv("RELEASES_URL")
+        if url:
+            async with ClientSession() as session:
+                async with session.get(url) as response:
+                    self.lucy.VERSION = (await response.json())["tag_name"]
+
         self.lucy._printer.ok(f"{self.lucy.user.name} is ready.")
 
 async def setup(lucy: Lucy):

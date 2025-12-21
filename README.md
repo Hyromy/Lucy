@@ -39,6 +39,7 @@ Configura las variables de entorno creando en la raíz del proyecto un archivo n
 | `DISCORD_BOT_TOKEN` | `None` | Token del bot  de producción |
 | `TESTING_DISCORD_BOT_TOKEN` | `None` | Token del bot de pruebas |
 | `TESTING_GUILD_ID` | `None` | Id de servidor de pruebas a sincronizar |
+| `RELEASES_URL` | `None` | Link de releases _formato https://api.github.com/repos/{user}/{repo}/releases/latest_ |
 
 ## Despliegue
 
@@ -61,6 +62,11 @@ Configura las variables de entorno creando en la raíz del proyecto un archivo n
    Instala las [dependencias](requirements.txt).
    ```sh
    pip install -r requirements.txt
+   ```
+
+3. Iniciar el bot
+   ```sh
+   python main.py
    ```
 
 ### Docker

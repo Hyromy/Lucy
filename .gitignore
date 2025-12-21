@@ -121,4 +121,5 @@ secrets.json
 
 .vscode/
 notes.md
+version_template.md
 /*test.py
