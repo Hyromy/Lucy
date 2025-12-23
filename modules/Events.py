@@ -6,6 +6,13 @@ class Events(commands.Cog):
     def __init__(self, lucy: Lucy):
         self.lucy = lucy
 
+    async def __refill_guild_info(self):
+        for guild in self.lucy.guilds:
+            try:
+                await self.lucy.api.guild.post(guild.id, guild.name)
+            except:
+                pass
+
     @commands.Cog.listener()
     async def on_ready(self):
         try:
@@ -22,6 +29,8 @@ class Events(commands.Cog):
         else:
             print()
             self.lucy._printer.ok(f"{self.lucy.user.name} is ready.")
+        
+        if self.lucy.api: await self.__refill_guild_info()
 
 async def setup(lucy: Lucy):
     await lucy.add_cog(Events(lucy))

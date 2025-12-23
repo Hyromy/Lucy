@@ -32,4 +32,4 @@ if __name__ == "__main__":
     if exception is not None:
         if lucy is not None:
             run(lucy.close())
-            run(sleep(100))
+            run(sleep(1))

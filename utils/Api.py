@@ -45,26 +45,30 @@ class Api:
             self.__parent: Api = parent
             self.__endpoint = "guild/"
 
-        @validations.args_required([("id", str)])
-        async def get(self, id: str):
+        @validations.args_required([("id", int)])
+        async def get(self, id: int):
             return await self.__parent._request("GET", f"{self.__endpoint}{id}")
         
-        @validations.args_required([("name", str)])
-        async def post(self, name: str):
+        @validations.args_required([
+            ("id", int),
+            ("name", str)
+        ])
+        async def post(self, id: int, name: str):
             return await self.__parent._request("POST", self.__endpoint, json = {
+                "id": id,
                 "name": name
             })
         
-        @validations.args_required([("id", str)])
-        async def patch(self, id: str, /, *, 
+        @validations.args_required([("id", int)])
+        async def patch(self, id: int, /, *, 
             name: str = None,
             lang: str = None
         ):
-            return await self.__parent._request("PATCH", f"{self.__endpoint}{id}", json = {
-                "name": name,
-                "lang": lang
-            })
+            json = {}
+            if name is not None: json["name"] = name
+            if lang is not None: json["lang"] = lang
+            return await self.__parent._request("PATCH", f"{self.__endpoint}{id}", json = json)
         
-        @validations.args_required([("id", str)])
-        async def delete(self, id: str):
+        @validations.args_required([("id", int)])
+        async def delete(self, id: int):
             return await self.__parent._request("DELETE", f"{self.__endpoint}{id}")

@@ -1,5 +1,11 @@
-from typing import Any
 import inspect
+from typing import Any
+from functools import wraps
+
+from discord import (
+    Embed,
+    Interaction,
+)
 
 def args_required(_args: list[tuple[Any, Any]] | list[Any] | Any | None = None):
     """
@@ -103,3 +109,59 @@ def args_required(_args: list[tuple[Any, Any]] | list[Any] | Any | None = None):
 
         return wrapper
     return decorator
+
+def api_required(*,
+    title: str = "⚠️ API Unavailable",
+    description: str = None,
+    color: int = 0xFF0000,
+    ephemeral: bool = False
+):
+    """
+    Requires that the API is available before executing a bot command.
+
+    Args:
+        title (str): The title of the embed message when the API is unavailable.
+        description (str): Additional description to include in the embed message.
+        color (int): The color of the embed message.
+        ephemeral (bool): Whether the response message should be ephemeral.
+
+    Returns:
+        A decorator that checks for API availability before executing the command.
+
+    Examples:
+        ```
+            from discord.ext.commands import Cog
+            from utils.Lucy import Lucy
+
+            class MyCog(Cog):
+                def __init__(self, lucy: Lucy):
+                    self.lucy = lucy
+
+                @app_commands.command()
+                @api_required()
+                async def my_command(self, interaction: Interaction):
+                    # Only runs if self.lucy.api is available here
+                    await interaction.response.defer()
+                    await interaction.followup.send(
+                        await self.lucy.api.test()
+                    )
+        ```
+    """
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(self, interaction:Interaction, *args, **kwargs):
+            if not self.lucy.api:
+                desc = "The API is currently unavailable."
+                return await interaction.response.send_message(
+                    embed = Embed(
+                        title = title,
+                        description = desc if description is None else f"{desc[:-1]}, {description}",
+                        color = color
+                    ),
+                    ephemeral = ephemeral
+                )
+        
+            return await func(self, interaction, *args, **kwargs)
+        return wrapper
+    return decorator
+
