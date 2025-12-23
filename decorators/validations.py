@@ -1,0 +1,105 @@
+from typing import Any
+import inspect
+
+def args_required(_args: list[tuple[Any, Any]] | list[Any] | Any | None = None):
+    """
+    Validate all, one, or multiple function arguments to ensure they are provided and not falsy.
+    
+    Args:
+        _args: Can be one of the following:
+            - None: Validate all arguments.
+            - str: Validate a single argument by name.
+            - list of str: Validate multiple arguments by their names.
+            - list of tuples: Each tuple contains (parameter_name, expected_type) to validate both presence and type.
+
+    Raises:
+        ValueError: If a required argument is missing or falsy.
+        TypeError: If an argument does not match the expected type.
+
+    Examples:
+        ```
+            # check all arguments
+            @args_required()
+            def func_all(a, b, c):
+                pass
+            
+            # only check "a"
+            @args_required("a")
+            def func_one(a, b):
+                pass
+            
+            # check "a" and "b"
+            @args_required(["a", "b"])
+            def func_multiple(a, b, c):
+                pass
+            
+            # check "a" as int and "b" as str
+            @args_required([("a", int), ("b", str)])
+            def func_typed(a, b, c):
+                pass
+        ```
+    """
+    def decorator(func):
+        sig = inspect.signature(func)
+
+        def raise_falsy(value: Any, name: str):
+            if value is None or not value:
+                raise ValueError(f"Parameter '{name}' must not be None or falsy.")
+
+        def raise_required(name: str, args: dict[str, Any]):
+            if name not in args:
+                raise ValueError(f"Parameter '{name}' is required.")
+
+        def check_name_in_args(name: str, args: dict[str, Any]):
+            raise_required(name, args)
+            raise_falsy(args[name], name)
+
+        # same logic in sync or async
+        def helper(*args, **kwargs):
+            bound_args = sig.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+
+            # many args
+            if isinstance(_args, list):
+                # specific types
+                if _args and isinstance(_args[0], tuple):
+                    for pair in _args:
+                        if not isinstance(pair, tuple) or len(pair) != 2:
+                            raise ValueError("When providing a list of tuples, each tuple must contain exactly two elements: (parameter_name, expected_type).")
+
+                        raise_required(pair[0], bound_args.arguments)
+                        value = bound_args.arguments[pair[0]]
+                        if not isinstance(value, pair[1]):
+                            raise ValueError(f"Parameter '{pair[0]}' must be of type {pair[1].__name__}.")
+                        if pair[1] == str and not value.strip():
+                            raise ValueError(f"Parameter '{pair[0]}' must be a non-empty string.")
+                
+                # simple names
+                else:
+                    for param_name in _args:
+                        if not isinstance(param_name, str):
+                            raise ValueError("When providing a list of parameter names, each name must be a string.")
+
+                        check_name_in_args(param_name, bound_args.arguments)
+        
+            # single arg
+            elif _args is not None:
+                check_name_in_args(_args, bound_args.arguments)
+                
+            # no args, check all
+            elif _args is None:
+                for param_name, _ in sig.parameters.items():
+                    if param_name in bound_args.arguments:
+                        raise_falsy(bound_args.arguments[param_name], param_name)
+
+        if inspect.iscoroutinefunction(func):
+            async def wrapper(*args, **kwargs):
+                helper(*args, **kwargs)
+                return await func(*args, **kwargs)        
+        else:
+            def wrapper(*args, **kwargs):
+                helper(*args, **kwargs)
+                return func(*args, **kwargs)
+
+        return wrapper
+    return decorator

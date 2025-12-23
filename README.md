@@ -33,13 +33,15 @@ Obtén tu Token en [Discord Developer Portal](https://discord.com/developers/app
 
 Configura las variables de entorno creando en la raíz del proyecto un archivo nombrado `.env` y establece las claves necesarias
 
-| Clave | Valor por defecto | Descripción |
-| - | - | - |
-| `PRODUCTION` | `False` | Establece si el modo es de producción |
-| `DISCORD_BOT_TOKEN` | `None` | Token del bot  de producción |
-| `TESTING_DISCORD_BOT_TOKEN` | `None` | Token del bot de pruebas |
-| `TESTING_GUILD_ID` | `None` | Id de servidor de pruebas a sincronizar |
-| `RELEASES_URL` | `None` | Link de releases _formato https://api.github.com/repos/{user}/{repo}/releases/latest_ |
+| Clave | Valor por defecto | Descripción | Requerido |
+| - | - | - | - |
+| `PRODUCTION` | `False` | Establece si el modo es de producción | No |
+| `DISCORD_BOT_TOKEN` | `None` | Token del bot  de producción | Cuando `PRODUCTION=True` |
+| `TESTING_DISCORD_BOT_TOKEN` | `None` | Token del bot de pruebas | Cuando `PRODUCTION=False` |
+| `TESTING_GUILD_ID` | `None` | Id de servidor de pruebas a sincronizar | Cuando `PRODUCTION=False` |
+| `RELEASES_URL` | `None` | Link de releases _(https://api.github.com/repos/{user}/{repo}/releases/latest)_ | No |
+| `GITHUB_TOKEN` | `None` | Token de github para autenticar la consulta de la versión | No |
+| `API_REST` | `None` | URL de API REST _(https://example-api/)_ | No |
 
 ## Despliegue
 

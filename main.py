@@ -1,4 +1,4 @@
-from asyncio import run
+from asyncio import run, sleep
 
 from dotenv import load_dotenv
 
@@ -8,6 +8,7 @@ from utils.Printer import Printer
 lucy: Lucy = None
 
 async def main():
+    global lucy
     lucy = Lucy()
     await lucy.load_cogs()
     await lucy.start()
@@ -31,5 +32,4 @@ if __name__ == "__main__":
     if exception is not None:
         if lucy is not None:
             run(lucy.close())
-    
-    exit(1)
+            run(sleep(100))

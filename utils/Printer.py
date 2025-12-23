@@ -3,7 +3,7 @@ from traceback import format_exc
 
 from rich.console import Console
 
-from .decorators import singleton
+from decorators.patterns import singleton
 
 @singleton
 class Printer:
