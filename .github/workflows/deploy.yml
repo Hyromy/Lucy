@@ -28,5 +28,6 @@ jobs:
             docker run -d --name '${{ vars.DOCKER_CONTAINER }}' \
               -e 'PRODUCTION=True' \
               -e 'DISCORD_BOT_TOKEN=${{ secrets.DISCORD_BOT_TOKEN }}' \
-              -e 'OWNER_ID=${{ vars.OWNER_ID }}' \
+              -e 'API_REST=${{ vars.API_REST }}' \
+              -e 'RELEASES_URL=${{ vars.RELEASES_URL }}' \
               '${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE }}:latest'
