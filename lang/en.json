@@ -1,3 +1,77 @@
 {
-    "test": "This is a test string."
+    "__label": "English",
+    "__not_available": "Text not available",
+    "cmds": {
+        "general": {
+            "help": {
+                "__footer": {
+                    "text": "Developed by"
+                },
+                "__view": {
+                    "close_button": "Close"
+                },
+                "not_category": {
+                    "embed": {
+                        "title": "General Help",
+                        "description": "General help, categories, and available commands.",
+                        "field": [
+                            {
+                                "name": "Commands",
+                                "value": [
+                                    "Use the dropdown menu or type",
+                                    "for more information"
+                                ]
+                            }
+                        ]
+                    },
+                    "view": {
+                        "select": {
+                            "placeholder": "Select a category"
+                        }
+                    }
+                },
+                "category": {
+                    "embed": {
+                        "title": "{}{} Commands",
+                        "description": {
+                            "__n_a": "Description not available.",
+                            "general": "General commands for all users.",
+                            "config": "Configuration commands for server administrators."
+                        },
+                        "field": [
+                            {
+                                "name": "Parameters",
+                                "value": [
+                                    "Optional",
+                                    "Required"
+                                ]
+                            },
+                            {
+                                "ping": "Checks the bot's latency.",
+                                "help": "Shows help information about commands.",
+                                "lang": "Sets the bot's language for this server."
+                            }
+                        ]
+                    },
+                    "view": {
+                        "button": {
+                            "label": "Back"
+                        }
+                    }
+                }
+            }
+        },
+        "config": {
+            "lang": {
+                "ok": {
+                    "title": "Language Updated",
+                    "msg": "The bot's language has been successfully updated."
+                },
+                "err": {
+                    "title": "Error",
+                    "msg": "An error occurred while trying to update the bot's language."
+                }
+            }
+        }
+    }
 }

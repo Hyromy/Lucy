@@ -2,11 +2,17 @@ from os import getenv, listdir
 from re import match as re_match
 
 from aiohttp import ClientSession
-from discord import Intents, Object, User
+from discord import (
+    Intents,
+    Interaction,
+    Object,
+    User
+)
 from discord.ext.commands import Bot
 
-from .Printer import Printer
 from .Api import Api
+from .Printer import Printer
+from .funcs import get_lang_package
 
 class Lucy(Bot):
     def __init__(self):
@@ -24,6 +30,7 @@ class Lucy(Bot):
         self._printer.info(f"Running in {'PRODUCTION' if self.PRODUCTION else 'DEBUG'} mode.")
 
         self.api = None
+        self.lang = get_lang_package()
 
     async def load_cogs(self, dir: str = "modules"):
         loaded = 0
@@ -132,6 +139,17 @@ class Lucy(Bot):
                 await session.close()
         else:
             self._printer.warn("No RELEASES_URL found; version info will be unavailable.")
+
+    async def cmd_err(self, cmd_name: str = "unknown", *, interaction: Interaction, error: Exception):
+        assert interaction is not None, "Interaction must be provided."
+        assert error is not None, "Error must be provided."
+
+        self.lucy._printer.error(f"Error in {cmd_name} command", error)
+        content = "An error occurred while processing the command."
+        try:
+            await interaction.response.send_message(content, ephemeral = True)
+        except:
+            await interaction.followup.send(content, ephemeral = True)
 
     async def start(self):
         await super().start(getenv(

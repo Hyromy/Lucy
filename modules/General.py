@@ -29,21 +29,27 @@ class General(Cog):
             ephemeral = True
         )
 
+    @ping.error
+    async def ping_error(self, interaction: Interaction, error: Exception):
+        await self.lucy.cmd_err("ping", interaction = interaction, error = error)
+
     @app_commands.command(description = "Show help information.")
     @app_commands.describe(category = "Choose a category to get help on.")
     async def help(self, interaction: Interaction,
         category: Optional[str] = None
     ):
         await interaction.response.defer()
+        if self.lucy.api:
+            lang = (await self.lucy.api.guild.get(interaction.guild_id))["lang"] or "en"
 
         if not category:
-            embed = general_help_embed(self.lucy)
-            view = GeneralHelpView(self.lucy, interaction.user)
+            embed = general_help_embed(self.lucy, lang)
+            view = GeneralHelpView(self.lucy, interaction.user, lang)
             view.msg = await interaction.followup.send(embed = embed, view = view)
             return
 
-        embed = cog_help_embed(self.lucy.get_cog(category), self.lucy)
-        view = CommandHelpView(self.lucy, interaction.user)
+        embed = cog_help_embed(self.lucy.get_cog(category), self.lucy, lang)
+        view = CommandHelpView(self.lucy, interaction.user, lang)
         view.msg = await interaction.followup.send(embed = embed, view = view)
 
     @help.autocomplete(name = "category")
@@ -61,6 +67,10 @@ class General(Cog):
                 and current.lower().strip() in cog.__cog_name__.lower()
             )
         ][:25]
+
+    @help.error
+    async def help_error(self, interaction: Interaction, error: Exception):
+        await self.lucy.cmd_err("help", interaction = interaction, error = error)
 
 async def setup(lucy: Lucy):
     await lucy.add_cog(General(lucy))

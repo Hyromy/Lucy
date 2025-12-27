@@ -6,7 +6,7 @@ from discord import (
 from discord.ext.commands import Cog
 
 from decorators import validations
-from utils.funcs import get_supported_languages, get_linear_json_value
+from utils.funcs import get_lang_package
 from utils.Lucy import Lucy
 
 class Config(Cog):
@@ -21,8 +21,8 @@ class Config(Cog):
     @app_commands.describe(language = "The language to set the bot to.")
     @app_commands.choices(
         language = sorted([
-            app_commands.Choice(name = f"({lang.upper()}) {data['label']}", value = lang)
-            for lang, data in get_supported_languages().items()
+            app_commands.Choice(name = f"({lang.upper()}) {data['__label']}", value = lang)
+            for lang, data in get_lang_package().items()
         ], key = lambda x: x.value)
     )
     @validations.api_required(description = "cannot set server language.")
@@ -30,18 +30,25 @@ class Config(Cog):
         language: str
     ):
         await interaction.response.defer()
+        pre_lang = (await self.lucy.api.guild.get(interaction.guild_id))["lang"]
         response = await self.lucy.api.guild.patch(interaction.guild.id, lang = language)
         if response["ok"]:
-            await interaction.followup.send(
-                get_linear_json_value("test", f"lang/{language}")
-            )
-        else:
-            self.lucy._printer.warn(f"Failed to update language for guild {interaction.guild.id}: {response}")
+            ok = self.lucy.lang[language]["cmds"]["config"]["lang"]["ok"]
             await interaction.followup.send(embed = Embed(
-                title = "⚠️ Error",
-                description = "An error occurred while trying to update the server's language setting.",
-                color = 0xFF0000)
-            )
+                title = f"✅ {ok['title']}",
+                description = ok["msg"]
+            ))
+        else:
+            err = self.lucy.lang[pre_lang]["cmds"]["config"]["lang"]["err"]
+            await interaction.followup.send(embed = Embed(
+                title = f"⚠️ {err['title']}",
+                description = err["msg"],
+                color = 0xFF0000
+            ))
+
+    @lang.error
+    async def lang_error(self, interaction: Interaction, error: Exception):
+        await self.lucy.cmd_err("lang", interaction = interaction, error = error)
 
 async def setup(lucy: Lucy):
     await lucy.add_cog(Config(lucy))
