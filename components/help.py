@@ -17,7 +17,6 @@ from discord.ui import (
     View,
 )
 
-from utils.funcs import get_linear_json_value
 from utils.Lucy import Lucy
 from utils.Printer import Printer
 
@@ -33,10 +32,6 @@ def general_help_embed(lucy: Lucy, lang: str = "en") -> Embed:
         if getattr(cog, "show", False)
     ]))
     random_cmd = choice(list(random_cog.get_app_commands()))
-    cmd_id = get_linear_json_value(
-        f"general.help.{'prod' if lucy.PRODUCTION else 'test'}",
-        "data/slash_cmds_id"
-    ) or 0
 
     n_a = lucy.lang[lang]["__not_available"] or "Unknown translation"
     _help = lucy.lang[lang]["cmds"]["general"]["help"]
@@ -51,7 +46,7 @@ def general_help_embed(lucy: Lucy, lang: str = "en") -> Embed:
     embed.set_thumbnail(url = lucy.user.display_avatar.url)
     embed.add_field(
         name = lang["field"][0]["name"] or n_a,
-        value = f"{lang["field"][0]["value"][0] or n_a} </help:{cmd_id}> `{random_cog.__cog_name__} {random_cmd.name}` {lang["field"][0]["value"][1] or n_a}",
+        value = f"{lang["field"][0]["value"][0] or n_a} </help:{lucy.cache['slash_cmds'].get('help', 0)}> `{random_cog.__cog_name__} {random_cmd.name}` {lang["field"][0]["value"][1] or n_a}",
         inline = False
     )
     footer_embed(embed, lucy, dev_by)
@@ -85,12 +80,8 @@ def cog_help_embed(cog: Cog, lucy: Lucy, lang = "en") -> Embed:
                 arg_str = "`" + (f"({name})" if is_optional else f"<{name}>") + "`"
                 args.append(arg_str)
 
-        cmd_id = get_linear_json_value(
-            f"{cog.__cog_name__.lower()}.{cmd.name}.{'prod' if lucy.PRODUCTION else 'test'}",
-            "data/slash_cmds_id"
-        ) or 0
         embed.add_field(
-            name = f"</{cmd.name}:{cmd_id}> {' '.join(args) if args else ''}",
+            name = f"</{cmd.name}:{lucy.cache['slash_cmds'].get(cmd.name, 0)}> {' '.join(args) if args else ''}",
             value = (lang["field"][1][cmd.name] or lang["description"]["__n_a"]) or n_a,
             inline = False
         )
