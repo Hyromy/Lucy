@@ -5,7 +5,7 @@ from decorators import validations
 
 @singleton
 class Api:
-    def __init__(self, rest_url: str, test_endpoint: str = ""):
+    def __init__(self, rest_url: str, test_endpoint: str = "api/"):
         if not rest_url:
             raise ValueError("REST URL must be provided for Api instance.")
 
@@ -43,7 +43,7 @@ class Api:
     class __Guild:
         def __init__(self, parent):
             self.__parent: Api = parent
-            self.__endpoint = "guild/"
+            self.__endpoint = "api/bot/guild/"
 
         @validations.args_required([("id", int)])
         async def get(self, id: int):

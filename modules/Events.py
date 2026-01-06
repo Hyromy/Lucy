@@ -1,7 +1,7 @@
 from os import getenv
 
 from aiohttp import ClientSession
-from discord import Object
+from discord import Object, Guild
 from discord.ext import commands
 
 from utils.Api import Api
@@ -15,8 +15,9 @@ class Events(commands.Cog):
         for guild in self.lucy.guilds:
             try:
                 await self.lucy.api.guild.post(guild.id, guild.name)
-            except:
-                pass
+            except Exception as e:
+                if not self.lucy.PRODUCTION:
+                    self.lucy._printer.error(f"Failed to refill guild info for guild ID {guild.name}", e)
 
     async def sync_api(self):
         def not_available_msg():
@@ -133,6 +134,14 @@ class Events(commands.Cog):
             self.lucy._printer.ok(f"{self.lucy.user.name} is ready.")
         
         if self.lucy.api: await self.__refill_guild_info()
+
+    @commands.Cog.listener()
+    async def on_guild_join(self, guild: Guild):
+        if self.lucy.api:
+            try:
+                await self.lucy.api.guild.post(guild.id, guild.name)
+            except Exception as e:
+                self.lucy._printer.error(f"Failed to add guild info for guild ID {guild.name}", e)
 
 async def setup(lucy: Lucy):
     await lucy.add_cog(Events(lucy))

@@ -1,10 +1,17 @@
-FROM python:3.12
+FROM python:3.12-slim
 
-RUN mkdir -p /home/app
 WORKDIR /home/app
+
+COPY requirements.txt .
+
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
 COPY . .
 
-RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+RUN useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser /home/app
 
-CMD [ "python", "main.py" ]
+USER appuser
+
+CMD ["python", "main.py"]
