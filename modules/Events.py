@@ -1,6 +1,7 @@
 from os import getenv
 
 from aiohttp import ClientSession
+from asyncio import sleep
 from discord import Object, Guild
 from discord.ext import commands
 
@@ -109,11 +110,16 @@ class Events(commands.Cog):
         else:
             self.lucy._printer.warn("No RELEASES_URL found; version info will be unavailable.")
 
-    async def sync_cache(self):
+    async def sync_cache(self):        
         self.lucy._printer.operation("Syncing cache")
         cmds = await self.lucy.tree.fetch_commands()
+        
+        if self.lucy.PRODUCTION and len(cmds) == 0:
+            self.lucy._printer.warn("No commands found yet. Retrying in 10 seconds...")
+            await sleep(10)
+            cmds = await self.lucy.tree.fetch_commands()
+        
         self.lucy.cache["slash_cmds"] = {cmd.name: cmd.id for cmd in cmds}
-
         self.lucy._printer.ok(f"{len(cmds)} commands cached.")
 
     @commands.Cog.listener()
