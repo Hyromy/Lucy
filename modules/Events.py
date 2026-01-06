@@ -143,5 +143,13 @@ class Events(commands.Cog):
             except Exception as e:
                 self.lucy._printer.error(f"Failed to add guild info for guild ID {guild.name}", e)
 
+    @commands.Cog.listener()
+    async def on_guild_remove(self, guild: Guild):
+        if self.lucy.api:
+            try:
+                await self.lucy.api.guild.delete(guild.id)
+            except Exception as e:
+                self.lucy._printer.error(f"Failed to remove guild info for guild ID {guild.name}", e)
+
 async def setup(lucy: Lucy):
     await lucy.add_cog(Events(lucy))
