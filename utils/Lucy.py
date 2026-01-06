@@ -58,7 +58,7 @@ class Lucy(Bot):
         assert interaction is not None, "Interaction must be provided."
         assert error is not None, "Error must be provided."
 
-        self.lucy._printer.error(f"Error in {cmd_name} command", error)
+        self._printer.error(f"Error in {cmd_name} command", error)
         content = "An error occurred while processing the command."
         try:
             await interaction.response.send_message(content, ephemeral = True)

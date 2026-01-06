@@ -3,7 +3,7 @@ from os import listdir
 from re import match as re_match
 
 def get_lang_package(dir: str = "lang") -> dict:
-    """
+    r"""
     Loads language files from the specified directory and returns a dictionary
     mapping language codes to their respective data.
     Only files matching the pattern '^[a-z]{2}\.json$' are considered.

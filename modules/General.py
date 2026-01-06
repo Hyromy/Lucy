@@ -39,8 +39,9 @@ class General(Cog):
         category: Optional[str] = None
     ):
         await interaction.response.defer()
+        lang = "en"
         if self.lucy.api:
-            lang = (await self.lucy.api.guild.get(interaction.guild_id))["lang"] or "en"
+            lang = (await self.lucy.api.guild.get(interaction.guild_id))["lang"]
 
         if not category:
             embed = general_help_embed(self.lucy, lang)

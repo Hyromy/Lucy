@@ -57,7 +57,6 @@ class Events(commands.Cog):
         self.lucy._printer.operation("Syncing application commands")
         if self.lucy.PRODUCTION:
             try:
-                self.lucy.tree.clear_commands(guild = None)
                 await self.lucy.tree.sync()
             except Exception as e:
                 error(str(e), e)            
@@ -67,7 +66,6 @@ class Events(commands.Cog):
             if self.lucy.TESTING_GUILD_ID:
                 try:
                     guild = Object(self.lucy.TESTING_GUILD_ID)
-                    self.lucy.tree.clear_commands(guild = guild)
                     self.lucy.tree.copy_global_to(guild = guild)
                     await self.lucy.tree.sync(guild = guild)
                 except Exception as e:
