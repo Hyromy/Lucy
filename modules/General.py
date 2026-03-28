@@ -49,7 +49,14 @@ class General(Cog):
             view.msg = await interaction.followup.send(embed = embed, view = view)
             return
 
-        embed = cog_help_embed(self.lucy.get_cog(category), self.lucy, lang)
+        cog = self.lucy.get_cog(category)
+        if cog is None:
+            return await interaction.followup.send(
+                f"Category '{category}' not found.",
+                ephemeral = True
+            )
+
+        embed = cog_help_embed(cog, self.lucy, lang)
         view = CommandHelpView(self.lucy, interaction.user, lang)
         view.msg = await interaction.followup.send(embed = embed, view = view)
 

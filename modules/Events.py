@@ -110,12 +110,21 @@ class Events(commands.Cog):
 
     async def sync_cache(self):        
         self.lucy._printer.operation("Syncing cache")
-        cmds = await self.lucy.tree.fetch_commands()
         
-        if self.lucy.PRODUCTION and len(cmds) == 0:
-            self.lucy._printer.warn("No commands found yet. Retrying in 10 seconds...")
-            await sleep(10)
+        if self.lucy.PRODUCTION:
             cmds = await self.lucy.tree.fetch_commands()
+            if len(cmds) == 0:
+                self.lucy._printer.warn("No commands found yet. Retrying in 10 seconds...")
+                await sleep(10)
+                cmds = await self.lucy.tree.fetch_commands()
+        else:
+            if not self.lucy.TESTING_GUILD_ID:
+                self.lucy._printer.warn("TESTING_GUILD_ID in env is not set. Cannot cache test commands.")
+                self.lucy.cache["slash_cmds"] = {}
+                return
+
+            guild = Object(self.lucy.TESTING_GUILD_ID)
+            cmds = await self.lucy.tree.fetch_commands(guild = guild)
         
         self.lucy.cache["slash_cmds"] = {cmd.name: cmd.id for cmd in cmds}
         self.lucy._printer.ok(f"{len(cmds)} commands cached.")

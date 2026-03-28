@@ -1,9 +1,7 @@
 from aiohttp import ClientSession
 
-from decorators.patterns import singleton
 from decorators import validations
 
-@singleton
 class Api:
     def __init__(self, rest_url: str, test_endpoint: str = "api/"):
         if not rest_url:

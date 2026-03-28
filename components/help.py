@@ -5,7 +5,6 @@ from discord import (
     Color,
     Embed,
     Interaction,
-    InteractionCallbackResponse,
     NotFound,
     SelectOption,
     User,
@@ -27,16 +26,39 @@ def footer_embed(embed: Embed, lucy: Lucy, dev_by: str):
     )
 
 def general_help_embed(lucy: Lucy, lang: str = "en") -> Embed:
-    random_cog = choice(list([
-        cog for cog in lucy.cogs.values()
-        if getattr(cog, "show", False)
-    ]))
-    random_cmd = choice(list(random_cog.get_app_commands()))
-
     n_a = lucy.lang[lang]["__not_available"] or "Unknown translation"
     _help = lucy.lang[lang]["cmds"]["general"]["help"]
     dev_by = _help["__footer"]["text"] or n_a
     lang = _help["not_category"]["embed"]
+
+    visible_cogs = [
+        cog for cog in lucy.cogs.values()
+        if getattr(cog, "show", False)
+    ]
+
+    if not visible_cogs:
+        embed = Embed(
+            color = Color.blurple(),
+            title = lang["title"] or n_a,
+            description = "No categories are available yet."
+        )
+        embed.set_thumbnail(url = lucy.user.display_avatar.url)
+        footer_embed(embed, lucy, dev_by)
+        return embed
+
+    cogs_with_commands = [cog for cog in visible_cogs if list(cog.get_app_commands())]
+    if not cogs_with_commands:
+        embed = Embed(
+            color = Color.blurple(),
+            title = lang["title"] or n_a,
+            description = "No commands are available yet."
+        )
+        embed.set_thumbnail(url = lucy.user.display_avatar.url)
+        footer_embed(embed, lucy, dev_by)
+        return embed
+
+    random_cog = choice(cogs_with_commands)
+    random_cmd = choice(list(random_cog.get_app_commands()))
 
     embed = Embed(
         color = Color.blurple(),
@@ -95,7 +117,6 @@ async def time_out(view: View):
         try:
             await view.msg.delete()
         except NotFound: pass
-        except InteractionCallbackResponse: pass
         except Exception as e:
             Printer().error(f"Failed to delete help message on timeout: {e}", e)
 
@@ -114,7 +135,12 @@ class GeneralHelpView(View):
         _help = lucy.lang[lang]["cmds"]["general"]["help"]
         lang = _help["not_category"]["view"]
 
-        self.add_item(self.CogSelect(lucy, user, lang["select"]["placeholder"] or n_a, lang = _lang))
+        visible_cogs = [
+            cog for cog in lucy.cogs.values()
+            if getattr(cog, "show", False)
+        ]
+        if visible_cogs:
+            self.add_item(self.CogSelect(lucy, user, lang["select"]["placeholder"] or n_a, lang = _lang))
         self.add_item(CloseBtn(user, _help["__view"]["close_button"] or n_a))
 
     async def on_timeout(self):
@@ -145,12 +171,11 @@ class GeneralHelpView(View):
             if interaction.user != self.user:
                 return await invasor_interaction(interaction)
 
+            view = CommandHelpView(self.lucy, self.user, lang = self.lang)
+            view.msg = interaction.message
+
             await interaction.response.edit_message(
-                view = CommandHelpView(
-                    self.lucy,
-                    self.user,
-                    lang = self.lang
-                ),
+                view = view,
                 embed = cog_help_embed(
                     self.lucy.get_cog(self.values[0]),
                     self.lucy,
@@ -189,7 +214,8 @@ class CommandHelpView(View):
 
             embed = general_help_embed(self.lucy, self.lang)
             view = GeneralHelpView(self.lucy, self.user, self.lang)
-            view.msg = await interaction.response.edit_message(embed = embed, view = view)
+            view.msg = interaction.message
+            await interaction.response.edit_message(embed = embed, view = view)
 
 class CloseBtn(Button):
     def __init__(self, user: User, label: str):
