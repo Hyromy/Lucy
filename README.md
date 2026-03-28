@@ -7,6 +7,13 @@ Discord bot de propósito general
 ![Docker](https://img.shields.io/badge/Docker-Container-blue?logo=docker)
 
 ## Índice
+- [Lucy](#lucy)
+  - [Índice](#índice)
+  - [Estructura del proyecto](#estructura-del-proyecto)
+  - [Variables de entorno](#variables-de-entorno)
+  - [Despliegue](#despliegue)
+    - [Local](#local)
+    - [Docker](#docker)
 
 ## Estructura del proyecto
 
