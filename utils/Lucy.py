@@ -60,10 +60,10 @@ class Lucy(Bot):
 
         self._printer.error(f"Error in {cmd_name} command", error)
         content = "An error occurred while processing the command."
-        try:
-            await interaction.response.send_message(content, ephemeral = True)
-        except:
+        if interaction.response.is_done():
             await interaction.followup.send(content, ephemeral = True)
+        else:
+            await interaction.response.send_message(content, ephemeral = True)
 
     async def start(self):
         await super().start(getenv(
