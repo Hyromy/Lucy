@@ -27,16 +27,39 @@ def footer_embed(embed: Embed, lucy: Lucy, dev_by: str):
     )
 
 def general_help_embed(lucy: Lucy, lang: str = "en") -> Embed:
-    random_cog = choice(list([
-        cog for cog in lucy.cogs.values()
-        if getattr(cog, "show", False)
-    ]))
-    random_cmd = choice(list(random_cog.get_app_commands()))
-
     n_a = lucy.lang[lang]["__not_available"] or "Unknown translation"
     _help = lucy.lang[lang]["cmds"]["general"]["help"]
     dev_by = _help["__footer"]["text"] or n_a
     lang = _help["not_category"]["embed"]
+
+    visible_cogs = [
+        cog for cog in lucy.cogs.values()
+        if getattr(cog, "show", False)
+    ]
+
+    if not visible_cogs:
+        embed = Embed(
+            color = Color.blurple(),
+            title = lang["title"] or n_a,
+            description = "No categories are available yet."
+        )
+        embed.set_thumbnail(url = lucy.user.display_avatar.url)
+        footer_embed(embed, lucy, dev_by)
+        return embed
+
+    cogs_with_commands = [cog for cog in visible_cogs if list(cog.get_app_commands())]
+    if not cogs_with_commands:
+        embed = Embed(
+            color = Color.blurple(),
+            title = lang["title"] or n_a,
+            description = "No commands are available yet."
+        )
+        embed.set_thumbnail(url = lucy.user.display_avatar.url)
+        footer_embed(embed, lucy, dev_by)
+        return embed
+
+    random_cog = choice(cogs_with_commands)
+    random_cmd = choice(list(random_cog.get_app_commands()))
 
     embed = Embed(
         color = Color.blurple(),
@@ -114,7 +137,12 @@ class GeneralHelpView(View):
         _help = lucy.lang[lang]["cmds"]["general"]["help"]
         lang = _help["not_category"]["view"]
 
-        self.add_item(self.CogSelect(lucy, user, lang["select"]["placeholder"] or n_a, lang = _lang))
+        visible_cogs = [
+            cog for cog in lucy.cogs.values()
+            if getattr(cog, "show", False)
+        ]
+        if visible_cogs:
+            self.add_item(self.CogSelect(lucy, user, lang["select"]["placeholder"] or n_a, lang = _lang))
         self.add_item(CloseBtn(user, _help["__view"]["close_button"] or n_a))
 
     async def on_timeout(self):
