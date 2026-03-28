@@ -4,7 +4,10 @@ from discord import (
     ButtonStyle,
     Color,
     Embed,
+    Forbidden,
+    HTTPException,
     Interaction,
+    Message,
     NotFound,
     SelectOption,
     User,
@@ -18,6 +21,11 @@ from discord.ui import (
 
 from utils.Lucy import Lucy
 from utils.Printer import Printer
+
+
+def bind_view_message(view: View, message: Message | None):
+    if message is not None:
+        view.msg = message
 
 def footer_embed(embed: Embed, lucy: Lucy, dev_by: str):
     embed.set_footer(
@@ -116,9 +124,12 @@ async def time_out(view: View):
     if hasattr(view, "msg") and view.msg:
         try:
             await view.msg.delete()
-        except NotFound: pass
-        except Exception as e:
-            Printer().error(f"Failed to delete help message on timeout: {e}", e)
+        except (NotFound, Forbidden):
+            pass
+        except HTTPException as e:
+            Printer().error("Failed to delete help message on timeout.", e)
+        finally:
+            view.msg = None
 
 async def invasor_interaction(interaction: Interaction):
     await interaction.response.send_message(
@@ -172,7 +183,7 @@ class GeneralHelpView(View):
                 return await invasor_interaction(interaction)
 
             view = CommandHelpView(self.lucy, self.user, lang = self.lang)
-            view.msg = interaction.message
+            bind_view_message(view, interaction.message)
 
             await interaction.response.edit_message(
                 view = view,
@@ -214,7 +225,7 @@ class CommandHelpView(View):
 
             embed = general_help_embed(self.lucy, self.lang)
             view = GeneralHelpView(self.lucy, self.user, self.lang)
-            view.msg = interaction.message
+            bind_view_message(view, interaction.message)
             await interaction.response.edit_message(embed = embed, view = view)
 
 class CloseBtn(Button):
@@ -230,4 +241,9 @@ class CloseBtn(Button):
             return await invasor_interaction(interaction)
 
         self.view.stop()
-        await interaction.message.delete()
+        try:
+            await interaction.message.delete()
+        except (NotFound, Forbidden):
+            return
+        except HTTPException as e:
+            Printer().error("Failed to delete help message on close.", e)
