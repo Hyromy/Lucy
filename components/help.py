@@ -5,7 +5,6 @@ from discord import (
     Color,
     Embed,
     Interaction,
-    InteractionCallbackResponse,
     NotFound,
     SelectOption,
     User,
@@ -118,7 +117,6 @@ async def time_out(view: View):
         try:
             await view.msg.delete()
         except NotFound: pass
-        except InteractionCallbackResponse: pass
         except Exception as e:
             Printer().error(f"Failed to delete help message on timeout: {e}", e)
 
@@ -173,12 +171,11 @@ class GeneralHelpView(View):
             if interaction.user != self.user:
                 return await invasor_interaction(interaction)
 
+            view = CommandHelpView(self.lucy, self.user, lang = self.lang)
+            view.msg = interaction.message
+
             await interaction.response.edit_message(
-                view = CommandHelpView(
-                    self.lucy,
-                    self.user,
-                    lang = self.lang
-                ),
+                view = view,
                 embed = cog_help_embed(
                     self.lucy.get_cog(self.values[0]),
                     self.lucy,
@@ -217,7 +214,8 @@ class CommandHelpView(View):
 
             embed = general_help_embed(self.lucy, self.lang)
             view = GeneralHelpView(self.lucy, self.user, self.lang)
-            view.msg = await interaction.response.edit_message(embed = embed, view = view)
+            view.msg = interaction.message
+            await interaction.response.edit_message(embed = embed, view = view)
 
 class CloseBtn(Button):
     def __init__(self, user: User, label: str):
