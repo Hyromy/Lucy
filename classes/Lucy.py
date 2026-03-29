@@ -8,8 +8,8 @@ from discord import (
 )
 from discord.ext.commands import Bot
 
-from .Printer import Printer
-from .funcs import get_lang_package
+from utils.funcs import get_lang_package
+from utils.logger import logger
 
 class Lucy(Bot):
     def __init__(self):
@@ -27,8 +27,8 @@ class Lucy(Bot):
         self.OWNER: User = None
         self.VERSION: str = None
 
-        self._printer = Printer()
-        self._printer.info(f"Running in {'PRODUCTION' if self.PRODUCTION else 'DEBUG'} mode.")
+        from utils.logger import logger
+        logger.info(f"Running in {'PRODUCTION' if self.PRODUCTION else 'DEBUG'} mode.")
 
         self.api = None
         self.cache = dict()
@@ -39,26 +39,26 @@ class Lucy(Bot):
         failed = 0
         files = [i[:-3] for i in listdir(dir) if re_match(r"^(?!__)[A-Z][a-zA-Z0-9_]*\.py$", i)]
         len_files = len(files)
-        self._printer.operation(f"Loading {len_files} cogs from {dir}")
+        logger.info(f"Loading {len_files} cogs from {dir}")
         for filename in files:
             try:
                 await self.load_extension(f"{dir}.{filename}")
             
             except Exception as e:
-                self._printer.error(f"Failed to load cog {filename}: {e}", e)
+                logger.error(f"Failed to load cog {filename}: {e}", exc_info=e)
                 failed += 1
             
             else:
-                self._printer.ok(f"Successfully loaded cog {filename}")
+                logger.info(f"Successfully loaded cog {filename}")
                 loaded += 1
         
-        self._printer.info(f"All cogs loaded. (t{len_files}/ l{loaded}/ f{failed}).")
+        logger.info(f"All cogs loaded. (t{len_files}/ l{loaded}/ f{failed}).")
 
     async def cmd_err(self, cmd_name: str = "unknown", *, interaction: Interaction, error: Exception):
         assert interaction is not None, "Interaction must be provided."
         assert error is not None, "Error must be provided."
 
-        self._printer.error(f"Error in {cmd_name} command", error)
+        logger.error(f"Error in {cmd_name} command", exc_info=error)
         content = "An error occurred while processing the command."
         if interaction.response.is_done():
             await interaction.followup.send(content, ephemeral = True)

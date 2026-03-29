@@ -19,8 +19,8 @@ from discord.ui import (
     View,
 )
 
-from utils.Lucy import Lucy
-from utils.Printer import Printer
+from classes.Lucy import Lucy
+from utils.logger import logger
 
 
 def bind_view_message(view: View, message: Message | None):
@@ -127,7 +127,7 @@ async def time_out(view: View):
         except (NotFound, Forbidden):
             pass
         except HTTPException as e:
-            Printer().error("Failed to delete help message on timeout.", e)
+            logger.error("Failed to delete help message on timeout.", exc_info=e)
         finally:
             view.msg = None
 
@@ -246,4 +246,4 @@ class CloseBtn(Button):
         except (NotFound, Forbidden):
             return
         except HTTPException as e:
-            Printer().error("Failed to delete help message on close.", e)
+            logger.error("Failed to delete help message on close.", exc_info=e)

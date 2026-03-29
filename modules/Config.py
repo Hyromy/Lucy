@@ -7,7 +7,7 @@ from discord.ext.commands import Cog
 
 from decorators import validations
 from utils.funcs import get_lang_package
-from utils.Lucy import Lucy
+from classes.Lucy import Lucy
 
 class Config(Cog):
     def __init__(self, lucy: Lucy):

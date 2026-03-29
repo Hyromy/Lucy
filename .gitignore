@@ -118,6 +118,7 @@ dmypy.json
 config.json
 secrets.json
 *.log
+logs/
 
 .vscode/
 notes.md

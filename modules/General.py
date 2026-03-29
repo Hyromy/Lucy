@@ -12,7 +12,7 @@ from components.help import (
     GeneralHelpView,
     general_help_embed,
 )
-from utils.Lucy import Lucy
+from classes.Lucy import Lucy
 
 class General(Cog):
     def __init__(self, lucy:Lucy):

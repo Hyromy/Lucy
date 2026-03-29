@@ -1,9 +1,7 @@
 from asyncio import run, sleep
-
+from classes.Lucy import Lucy
 from dotenv import load_dotenv
-
-from utils.Lucy import Lucy
-from utils.Printer import Printer
+from utils.logger import logger
 
 lucy: Lucy = None
 
@@ -14,7 +12,6 @@ async def main():
     await lucy.start()
 
 if __name__ == "__main__":
-    printer = Printer()
     load_dotenv()
 
     exception = None
@@ -22,14 +19,13 @@ if __name__ == "__main__":
         run(main())
 
     except KeyboardInterrupt as e:
-        printer.info("Program interrupted by user. Exiting...")
+        logger.info("Program interrupted by user. Exiting...")
         exception = e
 
     except Exception as e:
-        printer.error(f"An unexpected error occurred: {e}", e)
+        logger.error(f"An unexpected error occurred: {e}", exc_info=e)
         exception = e
 
-    if exception is not None:
-        if lucy is not None:
-            run(lucy.close())
-            run(sleep(1))
+    if exception is not None and lucy is not None:
+        run(lucy.close())
+        run(sleep(1))
