@@ -9,78 +9,53 @@ Discord bot de propósito general
 ## Índice
 - [Lucy](#lucy)
   - [Índice](#índice)
-  - [Estructura del proyecto](#estructura-del-proyecto)
   - [Variables de entorno](#variables-de-entorno)
-  - [Despliegue](#despliegue)
-    - [Local](#local)
-    - [Docker](#docker)
-
-## Estructura del proyecto
-
-Se posee una estructura modular
-
-```sh
-components/         # componentes UI
-modules/            # cogs
-utils/              # utilidades
-├── Lucy.py         # clase Bot
-└── *               # otras utilidades
-
-main.py             # Punto de entrada del Bot
-requirements.txt    # Dependencias
-```
+  - [Instalación](#instalación)
+    - [pip](#pip)
+    - [poetry](#poetry)
 
 ## Variables de entorno
 
-Para configurar las variables de entorno, copia el archivo `.env.example` como `.env` en la raíz del proyecto y completa los valores necesarios según tu entorno.
+Para configurar las variables de entorno, copia el archivo `.env.example` como `.env` en la raíz del proyecto y configura los valores según lo necesites.
 
-En el archivo `.env.example` encontrarás la plantilla y la descripción de todas las variables disponibles.
+Es necesario que dispongas de un token de bot de discord para ejecutar el proyecto. Puedes obtener tu token en [Discord Developer Portal](https://discord.com/developers/applications).
 
-Puedes obtener el token de tu bot de Discord en el [Discord Developer Portal](https://discord.com/developers/applications).
+## Instalación
 
-## Despliegue
+### pip
 
-### Local
-
-1. Entorno virtual
-   
-   Crea un entorno virtual, como ejemplo se usa el módulo `venv`.
+1. Crea un entorno virtual:
    ```sh
-   py -m venv env
+   python -m venv env
    ```
 
-   Activa el entorno virtual.
+2. Activa el entorno virtual:
    ```sh
-   .\env\Scripts\activate     # Windows
+   env\Scripts\activate    # Windows
+   ```
+   
+   ```sh
+   source env/bin/activate    # Linux / macOS
    ```
 
-2. Dependencias
-   
-   Instala las [dependencias](requirements.txt).
+3. Instala las dependencias:
    ```sh
    pip install -r requirements.txt
    ```
 
-3. Iniciar el bot
+### poetry
+
+1. Instala las dependencias:
    ```sh
-   python main.py
+   poetry install
    ```
 
-### Docker
+2. Activa el entorno virtual:
+   ```sh
+   poetry shell
+   ```
 
-Puedes construir una imagen y contenedor con el [Dockerfile](Dockerfile).
+Posterior a la instalación ejecuta el proyecto:
 ```sh
-docker build -t app_image .
-
-# Linux/macOS:
-docker run --name app_container -d \
-    -e PRODUCTION=True \
-    -e DISCORD_BOT_TOKEN=your_token_here \
-    app_image
-
-# Windows PowerShell:
-docker run --name app_container -d `
-    -e PRODUCTION=True `
-    -e DISCORD_BOT_TOKEN=your_token_here `
-    app_image
+python main.py
 ```

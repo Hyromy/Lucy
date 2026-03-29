@@ -127,3 +127,4 @@ secrets.json
 .github/
 LICENSE
 *.md
+test/
