@@ -1,4 +1,4 @@
-
+from abc import ABC, abstractmethod
 from aiohttp import (
     ClientSession,
     ClientTimeout,
@@ -9,119 +9,192 @@ from tenacity import (
     retry,
     stop_after_attempt,
     wait_fixed,
-    retry_if_exception_type,
-    retry_if_result
+    retry_if_exception,
 )
 
-from decorators import validations
+from utils.funcs import (
+    normalize_url,
+    id_url_param,
+)
 
-class Api:
+class _ApiClient:
+    r"""
+    A client for making HTTP requests to a RESTful API, with built-in retry logic for handling transient errors.
+
+    Args:
+        path (str): The base URL for the API.
+        session (ClientSession, optional): An optional aiohttp ClientSession to use for making requests. If not provided, a new session will be created when needed.
+        add_slash (bool, optional): Whether to ensure that the base URL ends with a slash. Defaults to True.
+
+    Example:
+    ```
+        api = _ApiClient("http://example.com/api")
+
+        await api.get("users")
+        await api.post("users", json = {"name": "Alice"})
+        await api.patch("users/1", json = {"name": "Alice Smith"})
+        await api.delete("users/1")
+
+        api.close()
+    ```
+    """
+
     DEFAULT_TIMEOUT = 5
     RETRY_ATTEMPTS = 2
     RETRY_BACKOFF = 0.7
 
-    def __init__(self, rest_url: str, test_endpoint: str = "api/"):
-        if not rest_url:
-            raise ValueError("REST URL must be provided for Api instance.")
+    def __init__(self, path: str, /, *,
+        session: ClientSession = None,
+        add_slash: bool = True,
+    ):
+        self.path = normalize_url(path, "", trailing_slash = add_slash)
+        
+        self._use_slash = add_slash
 
-        self.__session: ClientSession = None
-        self.__url = rest_url.rstrip("/")
-        self.__test_endpoint = test_endpoint
-        self.__timeout = ClientTimeout(total = self.DEFAULT_TIMEOUT)
+        self._session = session
+        self._timeout = ClientTimeout(total = self.DEFAULT_TIMEOUT)
 
-        try:
-            self.connect()
-        except Exception as e:
-            raise ConnectionError(f"Client session could not be established: {e}") from e
+    @property
+    def session(self) -> ClientSession:
+        if self._session is None or self._session.closed:
+            self._session = ClientSession(timeout = self._timeout)
 
-        self.guild = self.__Guild(self)
-
-    def connect(self):
-        self.__session = ClientSession(timeout = self.__timeout)
+        return self._session
 
     async def close(self):
-        if self.__session:
-            await self.__session.close()
-            self.__session = None
+        if self._session and not self._session.closed:
+            await self._session.close()
+            self._session = None
 
-    async def test(self):
-        return await self._request("GET", self.__test_endpoint)
-
-    def _is_retryable(self, exc_or_resp):
-        if isinstance(exc_or_resp, (ClientConnectionError, TimeoutError)):
+    @staticmethod
+    def _is_retryable(exc):
+        if isinstance(exc, (ClientConnectionError, TimeoutError)):
             return True
-        if isinstance(exc_or_resp, ClientResponseError):
-            return exc_or_resp.status in (502, 503, 504)
-
-        if hasattr(exc_or_resp, 'status'):
-            return exc_or_resp.status in (502, 503, 504)
+        
+        if isinstance(exc, ClientResponseError):
+            return exc.status in (502, 503, 504)
+        
         return False
-
-    def _retry_predicate(self, exc):
-        return self._is_retryable(exc)
 
     @retry(
         stop = stop_after_attempt(RETRY_ATTEMPTS + 1),
         wait = wait_fixed(RETRY_BACKOFF),
-        retry = (
-            retry_if_exception_type((
-                ClientConnectionError,
-                TimeoutError,
-                ClientResponseError
-            ))
-            .__or__(retry_if_result(
-                lambda resp: hasattr(resp, 'status') and resp.status in (502, 503, 504)
-            ))
-        ),
+        retry = retry_if_exception(lambda exc: _ApiClient._is_retryable(exc)),
         reraise = True
     )
     async def _request(self, method: str, endpoint: str, /, **kwargs):
         if 'timeout' not in kwargs:
-            kwargs['timeout'] = self.__timeout
+            kwargs['timeout'] = self._timeout
 
-        try:
-            async with self.__session.request(
-                method,
-                f"{self.__url}/{endpoint}",
-                **kwargs
-            ) as response:
-                response.raise_for_status()
-                return await response.json()
+        path = normalize_url(self.path, endpoint, trailing_slash = self._use_slash)
+        async with self.session.request(method, path, **kwargs) as response:
+            response.raise_for_status()
+            return await response.json()
 
-        except (ClientConnectionError, TimeoutError, ClientResponseError) as exc:
-            if self._is_retryable(exc):
-                raise
-            raise
+    async def get(self, endpoint: str, /, **kwargs):
+        return await self._request("GET", endpoint, **kwargs)
+    
+    async def post(self, endpoint: str, /, **kwargs):
+        return await self._request("POST", endpoint, **kwargs)
+    
+    async def patch(self, endpoint: str, /, **kwargs):
+        return await self._request("PATCH", endpoint, **kwargs)
+    
+    async def delete(self, endpoint: str, /, **kwargs):
+        return await self._request("DELETE", endpoint, **kwargs)    
 
-    class __Guild:
-        def __init__(self, parent):
-            self.__parent: Api = parent
-            self.__endpoint = "api/bot/guild/"
+class _ApiInterface(ABC):
+    r"""
+    A base class for API service interfaces, providing common functionality for constructing endpoint URLs and making requests through an _ApiClient instance.
 
-        @validations.args_required([("id", int)])
-        async def get(self, id: int):
-            return await self.__parent._request("GET", f"{self.__endpoint}{id}")
-        
-        @validations.args_required([
-            ("id", int),
-            ("name", str)
-        ])
-        async def post(self, id: int, name: str):
-            return await self.__parent._request("POST", self.__endpoint, json = {
-                "id": id,
-                "name": name
-            })
-        
-        @validations.args_required([("id", int)])
-        async def patch(self, id: int, /, *, 
-            name: str = None,
-            lang: str = None
-        ):
-            json = {}
-            if name is not None: json["name"] = name
-            if lang is not None: json["lang"] = lang
-            return await self.__parent._request("PATCH", f"{self.__endpoint}{id}", json = json)
-        
-        @validations.args_required([("id", int)])
-        async def delete(self, id: int):
-            return await self.__parent._request("DELETE", f"{self.__endpoint}{id}")
+    Args:
+        client (_ApiClient): An instance of the _ApiClient class to use for making requests.
+        endpoint (str): The base endpoint for the API service (e.g., "users").
+
+    Properties:
+        client (_ApiClient): The _ApiClient instance used for making requests.
+        endpoint (str): The base endpoint for the API service.
+        url (str): The full URL for the API service, constructed from the client's base path and the service's endpoint.
+
+    Methods:
+        get(id: int = 0): Make a GET request to the service's endpoint, optionally with an ID parameter.
+        new(*args, **kwargs): An abstract method that must be implemented by subclasses to create new resources through the API.
+
+    Example:
+    ```
+        class MyService(_ApiInterface):
+            # Initialize the service with the client and endpoint
+            def __init__(self, client: _ApiClient, endpoint: str):
+                super().__init__(client, endpoint)
+
+            # Implement the abstract new method to create a new resource
+            async def new(self):
+                return await self.client.post(self.endpoint, json = {"key": "value"})
+                
+            # you can add more methods for other operations
+            async def my_custom_method(self):
+                return await self.client.get(f"{self.endpoint}/custom")
+
+        my_service = MyService(_ApiClient("http://example.com/api"), "myservice")
+
+        my_service.endpoint  # "myservice"
+        my_service.url       # "http://example.com/api/myservice/"
+
+        await my_service.get()               # Makes a GET request to "http://example.com/api/myservice/"
+        await my_service.new()               # Calls the new method to create a new resource
+        await my_service.my_custom_method()  # Calls the custom method for additional operations   
+    ```
+    """
+
+    def __init__(self, client: _ApiClient, endpoint: str):
+        self._client = client
+        self._endpoint = endpoint
+
+    @property
+    def client(self):
+        return self._client
+
+    @property
+    def endpoint(self):
+        return self._endpoint
+
+    @property
+    def url(self):
+        return normalize_url(self._client.path, self._endpoint,
+            trailing_slash = self._client._use_slash
+        )
+
+    async def get(self, id: int = 0):
+        return await self._client.get(
+            normalize_url(self.endpoint, id_url_param(id),
+                trailing_slash = self._client._use_slash
+            )
+        )
+
+    @abstractmethod
+    async def new(self, *args, **kwargs):
+        pass
+
+class _Guild(_ApiInterface):
+    def __init__(self, client: _ApiClient, /, *,
+        endpoint: str = "guild"
+    ):
+        super().__init__(client, endpoint)
+    
+    async def new(self):
+        pass
+
+class ApiServices:
+    def __init__(self, path: str, /, *,
+        session: ClientSession = None,
+        add_slash: bool = True,
+    ):
+        self._client = _ApiClient(path,
+            session = session,
+            add_slash = add_slash
+        )
+
+        self.guild = _Guild(self._client)
+
+    async def close(self):
+        await self._client.close()
