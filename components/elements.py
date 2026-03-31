@@ -46,11 +46,15 @@ class BaseButton(Button):
         shared: bool = None,
         author: User = None,
         on_click: Callable[[Interaction], Awaitable[Any]] = None,
-        
+        is_close: bool = False,
+
         style: ButtonStyle = ButtonStyle.primary,
         
         **kwargs
     ):
+        if is_close:
+            style = ButtonStyle.danger
+
         super().__init__(
             label = label,
             style = style,
@@ -60,11 +64,19 @@ class BaseButton(Button):
         self.shared = shared
         self.author = author
         self.on_click = on_click
+        self.is_close = is_close
 
     @restrict_to_author
     async def callback(self, interaction: Interaction):
         if self.on_click:
             return await self.on_click(interaction)
+        
+        if self.is_close:
+            self.view.stop()
+            try:
+                await interaction.message.delete()
+            except:
+                pass
 
 class BaseSelect(Select):
     r"""
