@@ -1,9 +1,20 @@
 from asyncio import run
 from classes.Lucy import Lucy
-from dotenv import load_dotenv
-from utils.logger import logger
-from os import getenv
 from discord import Intents
+from dotenv import load_dotenv
+from lang import l
+from os import getenv
+from utils.logger import logger
+
+def lang_key_gen():
+    logger.info("Generating keys.py from base language JSON...")
+    try:
+        l.generate_keys()
+    except Exception as e:
+        logger.error("Error generating keys.py", exc_info = e)
+    else:
+        logger.info("keys.py generated successfully.")
+
 
 def prepare():
     production = getenv("PRODUCTION", "False") == "True"
@@ -30,9 +41,11 @@ async def close(lucy: Lucy):
 
 if __name__ == "__main__":
     load_dotenv()
+
     lucy, token = prepare()
-    
+
     try:
+        lang_key_gen()
         run(main(lucy, token))
 
     except KeyboardInterrupt:
@@ -43,3 +56,4 @@ if __name__ == "__main__":
 
     finally:
         run(close(lucy))
+    

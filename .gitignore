@@ -124,3 +124,4 @@ logs/
 *notes*.md
 version_template.md
 /*test.py
+/lang/keys.py

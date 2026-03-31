@@ -137,7 +137,7 @@ class Events(commands.Cog):
             await self.sync_commands()
             await self.sync_owner()
             await self.sync_version()
-            #await self.sync_cache()
+            await self.sync_cache()
 
         except Exception as e:
             logger.error(f"Error during on_ready setup. Shutting down {self.lucy.user.name}", exc_info=e)
