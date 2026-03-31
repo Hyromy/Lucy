@@ -1,31 +1,45 @@
-from asyncio import run, sleep
+from asyncio import run
 from classes.Lucy import Lucy
 from dotenv import load_dotenv
 from utils.logger import logger
+from os import getenv
+from discord import Intents
 
-lucy: Lucy = None
+def prepare():
+    production = getenv("PRODUCTION", "False") == "True"
+    token = getenv(
+        ("" if production else "TESTING_") + "DISCORD_BOT_TOKEN"
+    )
 
-async def main():
-    global lucy
-    lucy = Lucy()
-    await lucy.load_cogs()
-    await lucy.start()
+    intents = Intents.default()
+    intents.message_content = True
+
+    lucy = Lucy(",", intents,
+        is_production = production,
+        testing_guild_id = getenv("TESTING_GUILD_ID"),
+    )
+
+    return lucy, token
+
+async def main(lucy: Lucy, token: str):
+    await lucy.setup()
+    await lucy.start(token)
+
+async def close(lucy: Lucy):
+    await lucy.close()
 
 if __name__ == "__main__":
     load_dotenv()
-
-    exception = None
+    lucy, token = prepare()
+    
     try:
-        run(main())
+        run(main(lucy, token))
 
-    except KeyboardInterrupt as e:
-        logger.info("Program interrupted by user. Exiting...")
-        exception = e
+    except KeyboardInterrupt:
+        logger.info("Program interrupted by user. Shutting down gracefully.")
 
     except Exception as e:
-        logger.error(f"An unexpected error occurred: {e}", exc_info=e)
-        exception = e
+        logger.error("Unexpected error in main program", exc_info = e)
 
-    if exception is not None and lucy is not None:
-        run(lucy.close())
-        run(sleep(1))
+    finally:
+        run(close(lucy))

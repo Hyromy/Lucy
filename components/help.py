@@ -22,7 +22,6 @@ from discord.ui import (
 from classes.Lucy import Lucy
 from utils.logger import logger
 
-
 def bind_view_message(view: View, message: Message | None):
     if message is not None:
         view.msg = message

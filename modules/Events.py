@@ -5,7 +5,7 @@ from asyncio import sleep
 from discord import Object, Guild
 from discord.ext import commands
 
-from classes.Api import Api
+from classes.Api import ApiServices
 from classes.Lucy import Lucy
 from utils.logger import logger
 
@@ -32,7 +32,7 @@ class Events(commands.Cog):
         rest_url = getenv("API_REST")
         if rest_url:
             try:
-                self.lucy.api = Api(rest_url)
+                self.lucy.api = ApiServices(rest_url)
                 result = await self.lucy.api.test()
                 if result["status"] != "ok":
                     raise ConnectionError(f"API test failed for endpoint {self.lucy.api._Api__url}/{self.lucy.api._Api__test_endpoint}")
@@ -137,7 +137,7 @@ class Events(commands.Cog):
             await self.sync_commands()
             await self.sync_owner()
             await self.sync_version()
-            await self.sync_cache()
+            #await self.sync_cache()
 
         except Exception as e:
             logger.error(f"Error during on_ready setup. Shutting down {self.lucy.user.name}", exc_info=e)
