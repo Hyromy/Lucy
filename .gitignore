@@ -47,6 +47,7 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+*cache*
 
 # Translations
 *.mo
@@ -118,8 +119,10 @@ dmypy.json
 config.json
 secrets.json
 *.log
+logs/
 
 .vscode/
-notes.md
+*notes*.md
 version_template.md
 /*test.py
+/lang/keys.py

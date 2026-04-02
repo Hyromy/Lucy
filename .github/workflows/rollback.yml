@@ -1,0 +1,31 @@
+name: Rollback in VPS
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Docker image tag to deploy (example: 2026-03-28-123)"
+        required: true
+
+jobs:
+  validate_tag:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate image tag input
+        run: |
+          if [ -z "${{ github.event.inputs.image_tag }}" ]; then
+            echo "image_tag is required."
+            exit 1
+          fi
+          if [ "${{ github.event.inputs.image_tag }}" = "latest" ]; then
+            echo "Using 'latest' for rollback is not allowed. Provide a fixed image tag."
+            exit 1
+          fi
+
+  rollback:
+    needs: validate_tag
+    uses: ./.github/workflows/deploy-by-tag.yml
+    with:
+      image_tag: ${{ github.event.inputs.image_tag }}
+    secrets: inherit

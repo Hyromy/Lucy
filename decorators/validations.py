@@ -77,7 +77,7 @@ def args_required(_args: list[tuple[Any, Any]] | list[Any] | Any | None = None):
                         value = bound_args.arguments[pair[0]]
                         if not isinstance(value, pair[1]):
                             raise ValueError(f"Parameter '{pair[0]}' must be of type {pair[1].__name__}.")
-                        if pair[1] == str and not value.strip():
+                        if pair[1] is str and not value.strip():
                             raise ValueError(f"Parameter '{pair[0]}' must be a non-empty string.")
                 
                 # simple names
@@ -165,3 +165,44 @@ def api_required(*,
         return wrapper
     return decorator
 
+def restrict_to_author(func):
+    r"""
+    A decorator to restrict interaction with a component to its author unless it's marked as shared.
+
+    The decorated component must have 'shared' and 'author' attributes. If 'shared' is False and 'author' is set, only the author can interact with the component. If 'shared' is True (default), anyone can interact.
+
+    Examples:
+    ```
+        class SomeButton(Button):
+            def __init__(self, label: str, shared: bool = True, author: User = None):
+                super().__init__(label=label)
+                self.shared = shared
+                self.author = author
+
+            @restrict_to_author
+            async def callback(self, interaction: Interaction):
+                await interaction.response.send_message("You interacted with the button!")
+
+        # anyone can interact with this button
+        button_1 = SomeButton("Click Me")
+
+        # only the author can interact with this button
+        button_2 = SomeButton("Don't Click Me",
+            shared = False,
+            author = some_user
+        )
+    ```
+    """
+
+    async def wrapper(self, interaction: Interaction, *args, **kwargs):
+        shared = getattr(self, "shared", None)
+        author = getattr(self, "author", None)
+
+        if shared is not None and not shared and author is not None:
+            if interaction.user != author:
+                return await interaction.response.send_message(
+                    "You can't interact with this component.",
+                    ephemeral = True
+                )
+        return await func(self, interaction, *args, **kwargs)
+    return wrapper

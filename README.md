@@ -7,85 +7,96 @@ Discord bot de propósito general
 ![Docker](https://img.shields.io/badge/Docker-Container-blue?logo=docker)
 
 ## Índice
-
-## Estructura del proyecto
-
-Se posee una estructura modular
-
-```sh
-components/         # componentes UI
-modules/            # cogs
-utils/              # utilidades
-├── Lucy.py         # clase Bot
-└── *               # otras utilidades
-
-main.py             # Punto de entrada del Bot
-requirements.txt    # Dependencias
-```
+- [Lucy](#lucy)
+  - [Índice](#índice)
+  - [Variables de entorno](#variables-de-entorno)
+  - [Instalación](#instalación)
+    - [poetry (recomendado)](#poetry-recomendado)
+    - [pip](#pip)
+  - [Ejecución](#ejecución)
+  - [Diagnóstico y recuperación](#diagnóstico-y-recuperación)
+    - [Logs](#logs)
+    - [Arranque parcial](#arranque-parcial)
+    - [Estado](#estado)
+    - [Cache](#cache)
+    - [Dependencias](#dependencias)
 
 ## Variables de entorno
 
-Para el caso de que `PRODUCTION=True`, solo debe de configurarse como mínimo `DISCORD_BOT_TOKEN`.
+Para configurar las variables de entorno, copia el archivo `.env.example` como `.env` en la raíz del proyecto y configura los valores según lo necesites.
 
-Por otro lado es necesario configurar `TESTING_DISCORD_BOT_TOKEN` y `TESTING_GUILD_ID`.
+Es necesario que dispongas de un token de bot de discord para ejecutar el proyecto. Puedes obtener tu token en [Discord Developer Portal](https://discord.com/developers/applications).
 
-Obtén tu Token en [Discord Developer Portal](https://discord.com/developers/applications)
+## Instalación
 
-Configura las variables de entorno creando en la raíz del proyecto un archivo nombrado `.env` y establece las claves necesarias
+El proyecto funciona con [pyproject.toml](./pyproject.toml) a través de [poetry](https://python-poetry.org), en caso de que no lo tengas instalado puedes usarlo a por medio de pip
 
-| Clave | Valor por defecto | Descripción | Requerido |
-| - | - | - | - |
-| `PRODUCTION` | `False` | Establece si el modo es de producción | No |
-| `DISCORD_BOT_TOKEN` | `None` | Token del bot  de producción | Cuando `PRODUCTION=True` |
-| `TESTING_DISCORD_BOT_TOKEN` | `None` | Token del bot de pruebas | Cuando `PRODUCTION=False` |
-| `TESTING_GUILD_ID` | `None` | Id de servidor de pruebas a sincronizar | Cuando `PRODUCTION=False` |
-| `RELEASES_URL` | `None` | Link de releases _(https://api.github.com/repos/{user}/{repo}/releases/latest)_ | No |
-| `GITHUB_TOKEN` | `None` | Token de github para autenticar la consulta de la versión | No |
-| `API_REST` | `None` | URL de API REST _(https://example-api/)_ | No |
+### poetry (recomendado)
 
-## Despliegue
+1. Instala las dependencias:
+   ```sh
+   poetry install
+   ```
 
-### Local
+2. Activa el entorno virtual:
+   ```sh
+   poetry shell
+   ```
 
-1. Entorno virtual
+### pip
+
+1. Crea un entorno virtual:
+   ```sh
+   python -m venv env
+   ```
+
+2. Activa el entorno virtual:
+   ```sh
+   env\Scripts\activate    # Windows
+   ```
    
-   Crea un entorno virtual, como ejemplo se usa el módulo `venv`.
    ```sh
-   py -m venv env
+   source env/bin/activate    # Linux / macOS
    ```
 
-   Activa el entorno virtual.
+3. Instala poetry
    ```sh
-   .\env\Scripts\activate     # Windows
+   pip install poetry
    ```
 
-2. Dependencias
-   
-   Instala las [dependencias](requirements.txt).
+4. Instala las dependencias:
    ```sh
-   pip install -r requirements.txt
+   poetry install
    ```
 
-3. Iniciar el bot
-   ```sh
-   python main.py
-   ```
+## Ejecución
 
-### Docker
+Posterior a la instalación ejecuta el proyecto:
 
-Puedes construir una imagen y contenedor con el [Dockerfile](Dockerfile).
 ```sh
-docker build -t app_image .
-
-# Linux/macOS:
-docker run --name app_container -d \
-    -e PRODUCTION=True \
-    -e DISCORD_BOT_TOKEN=your_token_here \
-    app_image
-
-# Windows PowerShell:
-docker run --name app_container -d `
-    -e PRODUCTION=True `
-    -e DISCORD_BOT_TOKEN=your_token_here `
-    app_image
+python main.py
 ```
+
+## Diagnóstico y recuperación
+
+### Logs
+
+En caso de errores o comportamientos inesperados, se genera una carpeta `logs/` indicando el motivo del problema. Estos pueden ser en arranque, configuración o ejecución. Revisar por el archivo con la etiqueta `current.log` ya que puede existir más de un archivo.
+
+Para el caso de docker, ejecutar `docker logs <container>` para consultar los logs.
+
+### Arranque parcial
+
+Es posible que tras ejecutar el bot, este no logre arrancar y cancele la ejecución. Muchas veces se debe a [variables de entorno](#variables-de-entorno) no configuradas o con valores incorrectos.
+
+### Estado
+
+Para comprobar si el bot está disponible, ejecutar el comando `/ping` o `/help`, para verificar que este encendido y haya cargado los [cogs](./modules/) necesarios para funcionar.
+
+### Cache
+
+En caso de que el bot no haya cargado todos los comandos, sin comandos o que el comando `/help` no muestre las referencias correctas, reiniciar la ejecución del bot para forzar la sincronización en [Events.py](./modules/Events.py).
+
+### Dependencias
+
+Tras realizar `git pull` o cambios en las dependencias es posible que existan problemas, reinstalarlas con `poetry install`.

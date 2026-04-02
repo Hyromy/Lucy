@@ -8,7 +8,11 @@ on:
       - main
 
 jobs:
+  quality-gate:
+    uses: ./.github/workflows/quality.yml
+
   build:
+    needs: quality-gate
     runs-on: ubuntu-latest
     
     steps:
@@ -17,11 +21,14 @@ jobs:
 
       - name: Set image tag
         id: tag
-        run: echo "TAG=$(date +'%y.%m.%d')" >> $GITHUB_ENV
+        run: |
+          DATE_TAG=$(date +'%y.%m.%d')
+          SHORT_SHA=${GITHUB_SHA::7}
+          echo "TAG=${DATE_TAG}-${GITHUB_RUN_NUMBER}-${SHORT_SHA}" >> $GITHUB_ENV
 
       - name: Build Docker Image
         run: |
-          docker build -t '${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE }}:${{ env.TAG }}' -t '${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE }}:latest' .
+          docker build -t '${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE }}:'"$TAG" -t '${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE }}:latest' .
 
       - name: Login to Docker
         uses: docker/login-action@v3
@@ -31,5 +38,5 @@ jobs:
 
       - name: Push Docker Image
         run: |
-          docker push '${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE }}:${{ env.TAG }}'
+          docker push '${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE }}:'"$TAG"
           docker push '${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE }}:latest'

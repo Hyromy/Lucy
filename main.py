@@ -1,35 +1,53 @@
-from asyncio import run, sleep
+from asyncio import run
+from classes.Lucy import Lucy
+from classes.Config import Config, ConfigErr
+from discord import Intents
+from lang import l
+from utils.logger import logger
 
-from dotenv import load_dotenv
+def lang_key_gen():
+    try:
+        l.generate_keys()
+    except Exception as e:
+        logger.error("Error generating keys.py", exc_info = e)
+    else:
+        logger.info("Generated keys.py successfully.")
 
-from utils.Lucy import Lucy
-from utils.Printer import Printer
+def prepare():
+    try:
+        config = Config()
+    
+    except ConfigErr as e:
+        logger.error(f"Configuration error: {e}")
+        exit(1)
 
-lucy: Lucy = None
+    intents = Intents.default()
+    intents.message_content = True
 
-async def main():
-    global lucy
-    lucy = Lucy()
-    await lucy.load_cogs()
-    await lucy.start()
+    lucy = Lucy(intents, config = config)
+
+    return lucy, config.TOKEN
+
+async def main(lucy: Lucy, token: str):
+    await lucy.setup()
+    await lucy.start(token)
+
+async def close(lucy: Lucy):
+    await lucy.close()
 
 if __name__ == "__main__":
-    printer = Printer()
-    load_dotenv()
+    lucy, token = prepare()
 
-    exception = None
     try:
-        run(main())
+        lang_key_gen()
+        run(main(lucy, token))
 
-    except KeyboardInterrupt as e:
-        printer.info("Program interrupted by user. Exiting...")
-        exception = e
+    except KeyboardInterrupt:
+        logger.info("Program interrupted by user. Shutting down gracefully.")
 
     except Exception as e:
-        printer.error(f"An unexpected error occurred: {e}", e)
-        exception = e
+        logger.error("Unexpected error in main program", exc_info = e)
 
-    if exception is not None:
-        if lucy is not None:
-            run(lucy.close())
-            run(sleep(1))
+    finally:
+        run(close(lucy))
+    
