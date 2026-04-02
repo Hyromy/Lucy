@@ -3,10 +3,7 @@
     "__not_available": "Texto no disponible",
     "cmds": {
         "general": {
-            "_category_name": "General",
-            "_category_desc": "Comandos generales para todos los usuarios.",
             "help": {
-                "_help_description": "Proporciona información sobre el bot y sus comandos.",
                 "__footer": {
                     "text": "Desarrollado por"
                 },
@@ -62,16 +59,10 @@
                         }
                     }
                 }
-            },
-            "ping": {
-                "_help_description": "Mide la latencia del bot."
             }
         },
         "config": {
-            "_category_name": "Configuración",
-            "_category_desc": "Comandos de configuración para administradores del servidor.",
             "lang": {
-                "_help_description": "Establece el idioma del bot para este servidor.",
                 "ok": {
                     "title": "Idioma Actualizado",
                     "msg": "El idioma del bot ha sido actualizado correctamente."

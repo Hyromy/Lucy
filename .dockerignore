@@ -128,4 +128,3 @@ secrets.json
 LICENSE
 *.md
 test/
-/lang/keys.py
