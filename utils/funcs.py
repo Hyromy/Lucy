@@ -1,31 +1,5 @@
-from json import load
-from os import listdir
-from re import match as re_match
+from discord.ext.commands import Cog
 from urllib.parse import urljoin
-
-def get_lang_package(dir: str = "lang") -> dict:
-    r"""
-    Loads language files from the specified directory and returns a dictionary
-    mapping language codes to their respective data.
-    Only files matching the pattern '^[a-z]{2}\.json$' are considered.
-
-    Args:
-        dir (str): The directory containing language JSON files.
-
-    Returns:
-        dict: A dictionary where keys are language codes and values are the loaded JSON data.
-    """
-
-    assert isinstance(dir, str), "dir must be a string"
-
-    langs = dict()
-    for lang_file in listdir(dir):
-        if re_match(r"^[a-z]{2}\.json$", lang_file):
-            with open(f"{dir}/{lang_file}", "r", encoding = "utf-8") as f:
-                langs[lang_file[:-5]] = load(f)
-
-    return langs
-
 
 def normalize_url(base_url: str, endpoint: str, *,
     trailing_slash: bool = True
@@ -68,3 +42,41 @@ def id_url_param(id: int) -> str:
     is_valid = isinstance(id, int) and id > 0
 
     return str(id) if is_valid else ""
+
+def get_cogs_dict(lucy) -> dict:
+    """ Generates a dictionary containing information about the cogs in the Lucy bot. """    
+
+    result = {}
+    for cog in lucy.cogs.values():
+        cog_name = cog.__cog_name__
+
+        app_commands = []
+        if hasattr(cog, 'get_app_commands') and callable(getattr(cog, 'get_app_commands')):
+            app_commands = list(getattr(cog, 'get_app_commands')())
+        elif hasattr(cog, 'app_commands'):
+            app_commands = list(getattr(cog, 'app_commands'))
+
+        app_command_names = []
+        for cmd in app_commands:
+            name = getattr(cmd, 'name', str(cmd))
+            app_command_names.append(name)
+
+        result[cog_name] = {
+            'name': cog_name.lower(),
+            'show': getattr(cog, 'show', False),
+            'icon': getattr(cog, 'icon', None),
+            'app_commands': app_command_names
+        }
+    return result
+
+def get_bot_info(lucy) -> dict:
+    """ Generates a dictionary containing essential bot information for UI components. """
+    
+    return {
+        "bot_name": lucy.user.name,
+        "bot_avatar_url": lucy.user.display_avatar.url,
+        "owner_name": lucy.OWNER.name,
+        "owner_avatar_url": lucy.OWNER.display_avatar.url,
+        "version": lucy.VERSION,
+        "slash_cmds_cache": lucy.cache.get('slash_cmds', {})
+    }

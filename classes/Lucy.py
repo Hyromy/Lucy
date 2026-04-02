@@ -18,8 +18,7 @@ class Lucy(Bot):
         version: str = None,
 
         apiServices: ApiServices = None,
-        cache: dict = None,
-        lang_pkg: dict = None,
+        cache: dict = {},
 
         **kwargs
     ):
@@ -36,7 +35,6 @@ class Lucy(Bot):
 
         self.api = apiServices
         self.cache = cache
-        self.lang = lang_pkg
 		
     async def setup(self):
         self.remove_command("help")
