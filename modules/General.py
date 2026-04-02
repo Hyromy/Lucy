@@ -7,12 +7,15 @@ from discord import (
 from discord.ext.commands import Cog
 
 from components.cmd.help import (
-    CommandHelpView,
     cog_help_embed,
     GeneralHelpView,
     general_help_embed,
 )
 from classes.Lucy import Lucy
+from utils.funcs import (
+    get_cogs_dict,
+    get_bot_info
+)
 
 class General(Cog):
     def __init__(self, lucy: Lucy):
@@ -20,7 +23,6 @@ class General(Cog):
 
         self.show = True
         self.icon = "🌐"
-        self.description = "General commands for all users."
 
     @app_commands.command(name = "ping", description = "Check the bot's latency.")
     async def ping(self, interaction: Interaction):
@@ -42,23 +44,39 @@ class General(Cog):
         if self.lucy.api:
             lang = (await self.lucy.api.guild.get(interaction.guild_id))["lang"]
 
+        cogs_dict = get_cogs_dict(self.lucy)
+        bot_info = get_bot_info(self.lucy)
+
         if not category:
-            embed = general_help_embed(self.lucy, lang)
-            view = GeneralHelpView(self.lucy, interaction.user, lang)
+            view = GeneralHelpView(bot_info, cogs_dict, interaction.user, lang)
             view.associate_message(
-                await interaction.followup.send(embed = embed, view = view)
+                await interaction.followup.send(
+                    embed = general_help_embed(
+                        lang, 
+                        bot_info["bot_name"],
+                        bot_info["bot_avatar_url"],
+                        bot_info["owner_name"],
+                        bot_info["owner_avatar_url"],
+                        bot_info["version"],
+                        bot_info["slash_cmds_cache"].get('help', 0),
+                        cogs_dict
+                    ),
+                    view = view
+                )
             )
             return
 
-        cog = self.lucy.get_cog(category)
-        if cog is None:
-            return await interaction.followup.send(
+        cog_info = cogs_dict.get(category.capitalize())
+        if cog_info is None:
+            await interaction.followup.send(
                 f"Category '{category}' not found.",
                 ephemeral = True
             )
+            return
 
-        embed = cog_help_embed(cog, self.lucy, lang)
-        view = CommandHelpView(self.lucy, interaction.user, lang)
+        embed = cog_help_embed(cog_info, lang, **bot_info)
+        view = GeneralHelpView(bot_info, cogs_dict, interaction.user, lang, category = category)
+
         view.associate_message(
             await interaction.followup.send(embed = embed, view = view)
         )

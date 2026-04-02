@@ -7,8 +7,6 @@ from discord import (
     SelectOption,
     ButtonStyle,
 )
-from discord.ext.commands import Cog
-from classes.Lucy import Lucy
 from components.elements import (
     BaseView,
     BaseButton,
@@ -16,17 +14,26 @@ from components.elements import (
 )
 from lang import l
 
-def footer_embed(embed: Embed, lucy: Lucy, dev_by: str):
+def footer_embed(embed: Embed, owner_name: str, owner_avatar_url: str, bot_name: str, version: str, lang: str = "en"):
     embed.set_footer(
-        text = f"{dev_by} {lucy.OWNER.name} | {lucy.user.name} {lucy.VERSION or ''}",
-        icon_url = lucy.OWNER.display_avatar.url
+        text = f"{l.t(lang, l.k.cmds.general.help.footer.text)} {owner_name} | {bot_name} {version or ''}",
+        icon_url = owner_avatar_url
     )
 
-def general_help_embed(lucy: Lucy, lang: str = "en") -> Embed:
+def general_help_embed(
+    lang: str,
+    bot_name: str,
+    bot_avatar_url: str,
+    owner_name: str,
+    owner_avatar_url: str,
+    version: str,
+    slash_help_id: int,
+    cogs_dict: dict
+) -> Embed:
     _help = l.k.cmds.general.help
-    dev_by = l.t(lang, _help.footer.text)
     lang_data = _help.not_category.embed
-    visible_cogs = [cog for cog in lucy.cogs.values() if getattr(cog, "show", False)]
+    
+    visible_cogs = [cog for cog in cogs_dict.values() if cog['show']]
     
     if not visible_cogs:
         embed = Embed(
@@ -34,147 +41,167 @@ def general_help_embed(lucy: Lucy, lang: str = "en") -> Embed:
             title = l.t(lang, lang_data.title),
             description = "No categories are available yet."
         )
-        embed.set_thumbnail(url = lucy.user.display_avatar.url)
-        footer_embed(embed, lucy, dev_by)
+        embed.set_thumbnail(url = bot_avatar_url)
+        footer_embed(embed, owner_name, owner_avatar_url, bot_name, version, lang)
         return embed
         
-    cogs_with_commands = [cog for cog in visible_cogs if list(cog.get_app_commands())]
+    cogs_with_commands = [cog for cog in visible_cogs if cog['app_commands']]
     if not cogs_with_commands:
         embed = Embed(
             color = Color.blurple(),
             title = l.t(lang, lang_data.title),
             description = "No commands are available yet."
         )
-        embed.set_thumbnail(url = lucy.user.display_avatar.url)
-        footer_embed(embed, lucy, dev_by)
+        embed.set_thumbnail(url = bot_avatar_url)
+        footer_embed(embed, owner_name, owner_avatar_url, bot_name, version, lang)
         return embed
         
     random_cog = choice(cogs_with_commands)
-    random_cmd = choice(list(random_cog.get_app_commands()))
+    random_cmd_name = choice(random_cog['app_commands'])
+    
     embed = Embed(
         color = Color.blurple(),
         title = l.t(lang, lang_data.title),
         description = l.t(lang, lang_data.description)
     )
-    embed.set_thumbnail(url = lucy.user.display_avatar.url)
+    embed.set_thumbnail(url = bot_avatar_url)
     embed.add_field(
         name = l.t(lang, lang_data.field._0.name),
-        value = f"{l.t(lang, lang_data.field._0.value._0)} </help:{lucy.cache['slash_cmds'].get('help', 0)}> `{random_cog.__cog_name__} {random_cmd.name}` {l.t(lang, lang_data.field._0.value._1)}",
+        value = f"{l.t(lang, lang_data.field._0.value._0)} </help:{slash_help_id}> `{random_cog['name']} {random_cmd_name}` {l.t(lang, lang_data.field._0.value._1)}",
         inline = False
     )
-    footer_embed(embed, lucy, dev_by)
+    footer_embed(embed, owner_name, owner_avatar_url, bot_name, version, lang)
     return embed
 
-def cog_help_embed(cog: Cog, lucy: Lucy, lang="en") -> Embed:
+def cog_help_embed(
+    cog_info: dict,
+    lang: str,
+    bot_name: str,
+    bot_avatar_url: str,
+    owner_name: str,
+    owner_avatar_url: str,
+    version: str,
+    slash_cmds_cache: dict
+) -> Embed:
     _help = l.k.cmds.general.help
-    dev_by = l.t(lang, _help.footer.text)
     lang_data = _help.category.embed
+
+    cog_name = cog_info['name'].capitalize()
+    icon = (cog_info['icon'] + " ") if cog_info['icon'] else ""
 
     embed = Embed(
         color = Color.blurple(),
-        title = l.t(lang, lang_data.title).format((cog.icon + " " if getattr(cog, "icon", None) else ""), cog.__cog_name__),
-        description = l.t(lang, lang_data.description, key = cog.__cog_name__.lower()) or l.t(lang, lang_data.description.n_a)
+        title = l.t(lang, lang_data.title).format(icon, cog_name),
+        description = l.t(lang, lang_data.description, key = cog_info['name']) or l.t(lang, lang_data.description.n_a)
     )
-    embed.set_thumbnail(url = lucy.user.display_avatar.url)
+    embed.set_thumbnail(url = bot_avatar_url)
     embed.add_field(
         name = l.t(lang, lang_data.field._0.name),
         value = f"`()` {l.t(lang, lang_data.field._0.value._0)} `<>` {l.t(lang, lang_data.field._0.value._1)}",
         inline = False
     )
-    embed.add_field(name = "", value = "", inline = False)
     
-    for cmd in sorted(cog.get_app_commands(), key = lambda c: c.name):
-        args = []
-        for name, param in cmd.callback.__annotations__.items():
-            if name != "interaction":
-                is_optional = "Optional" in str(param)
-                arg_str = "`" + (f"({name})" if is_optional else f"<{name}>") + "`"
-                args.append(arg_str)
-                
+    for cmd_name in sorted(cog_info['app_commands']):
+        slash_id = slash_cmds_cache.get(cmd_name, 0)
         embed.add_field(
-            name = f"</{cmd.name}:{lucy.cache['slash_cmds'].get(cmd.name, 0)}> {' '.join(args) if args else ''}",
-            value = l.t(lang, lang_data.field._1, key = cmd.name) or l.t(lang, lang_data.description.n_a),
+            name = f"</{cmd_name}:{slash_id}>",
+            value = l.t(lang, lang_data.field._1, key = cmd_name) or l.t(lang, lang_data.description.n_a),
             inline = False
         )
         
-    footer_embed(embed, lucy, dev_by)
+    footer_embed(embed, owner_name, owner_avatar_url, bot_name, version, lang)
     return embed
 
 class GeneralHelpView(BaseView):
-    def __init__(self, lucy: Lucy, user: User, lang: str = "en"):
-        super().__init__(
-            shared = False,
-            author = user,
-            delete_on_timeout = True
-        )
-        _help = l.k.cmds.general.help
-        lang_data = _help.not_category.view
-        
-        visible_cogs = [cog for cog in lucy.cogs.values() if getattr(cog, "show", False)]
-        if visible_cogs:
-            self.append(self.CogSelect(lucy, user, l.t(lang, lang_data.select.placeholder), lang = lang))
-        self.append(BaseButton(l.t(lang, _help.view.close_button),
-            is_close = True
-        ))
-
-    class CogSelect(BaseSelect):
-        def __init__(self, lucy: Lucy, user: User, placeholder: str, lang: str = "en"):
-            self.lucy = lucy
-            self.user = user
-            self.lang = lang
-            options = [
-                SelectOption(
-                    label = (cog.icon + " " if getattr(cog, "icon", None) else "") + cog.__cog_name__,
-                    value = cog.__cog_name__,
-                ) for cog in self.lucy.cogs.values()
-                if getattr(cog, "show", False)
-            ]
-            
-            super().__init__(placeholder,
-                options = options,
-                on_select = self.on_select
-            )
-
-        async def on_select(self, interaction: Interaction, values: list[str]):
-            view = CommandHelpView(self.lucy, self.user, lang = self.lang)
-            view.associate_message(interaction.message)
-            
-            await interaction.response.edit_message(
-                view = view,
-                embed = cog_help_embed(
-                    self.lucy.get_cog(values[0]),
-                    self.lucy,
-                    self.lang
-                ),
-            )
-
-class CommandHelpView(BaseView):
-    def __init__(self, lucy: Lucy, user: User, lang: str = "en"):
-        super().__init__(
-            shared = False,
-            author = user,
-            delete_on_timeout = True
-        )
-        _help = l.k.cmds.general.help
-        lang_data = _help.category.view
-        
-        self.append(BackBtn(lucy, user, l.t(lang, lang_data.button.label), lang = lang))
-        self.append(BaseButton(l.t(lang, _help.view.close_button),
-            is_close = True
-        ))
-
-class BackBtn(BaseButton):
-    def __init__(self, lucy: Lucy, user: User, label: str, lang: str = "en"):
-        super().__init__(label or "Back",
-            style = ButtonStyle.secondary, 
-            on_click = self.on_click
-        )
-        self.lucy = lucy
-        self.user = user
+    def __init__(self, bot_info: dict, cogs_dict: dict, user: User, lang: str = "en", category: str = None):
+        self.bot_info = bot_info
+        self.cogs_dict = cogs_dict
         self.lang = lang
 
-    async def on_click(self, interaction: Interaction):
-        embed = general_help_embed(self.lucy, self.lang)
-        view = GeneralHelpView(self.lucy, self.user, self.lang)
-        view.associate_message(interaction.message)
-        await interaction.response.edit_message(embed=embed, view=view)
+        _help = l.k.cmds.general.help
+        lang_data = _help.not_category.view
+
+        super().__init__(
+            BaseSelect(l.t(lang, lang_data.select.placeholder),
+                options = [
+                    SelectOption(
+                        label = f"{(cog['icon'] + ' ') if cog['icon'] else ''}{l.t(lang, l.k.cmds, key = f"{cog['name']}._category_name")}",
+                        value = cog['name'].capitalize(),
+                        default = (category and category.capitalize() == cog['name'].capitalize())
+                    ) 
+                    for cog in sorted(cogs_dict.values(), key = lambda c: c['name']) if cog['show']
+                ],
+                on_select = self.on_select
+            ),
+            BaseButton(l.t(lang, _help.view.close_button),
+                is_close = True
+            ),
+            shared = False,
+            author = user,
+            delete_on_timeout = True
+        )
+
+        # Si se inicializa con una categoría, añadimos el botón de atrás automáticamente
+        if category:
+            self._add_back_button()
+
+    def _add_back_button(self):
+        """ Ayudante interno para añadir el botón de retroceso si no existe. """
+        if not any(isinstance(child, BaseButton) and getattr(child, "is_back", False) for child in self.children):
+            back_btn = BaseButton(
+                l.t(self.lang, l.k.cmds.general.help.category.view.button.label),
+                style = ButtonStyle.secondary,
+                on_click = self.on_back_click
+            )
+            back_btn.is_back = True
+            self.add_item(back_btn)
+
+    async def on_select(self, interaction: Interaction, values: list[str]):
+        selected_value = values[0]
+        cog_info = self.cogs_dict.get(selected_value)
+
+        select_menu: BaseSelect = self.children[0]
+        for opt in select_menu.options:
+            opt.default = (opt.value == selected_value)
+
+        self._add_back_button()
+
+        if cog_info:
+            embed = cog_help_embed(
+                cog_info,
+                self.lang,
+                **self.bot_info
+            )
+        else:
+            return
+
+        await interaction.response.edit_message(
+            embed = embed,
+            view = self,
+        )
+
+    async def on_back_click(self, interaction: Interaction):
+        select_menu: BaseSelect = self.children[0]
+        for opt in select_menu.options:
+            opt.default = False
+        
+        for child in self.children:
+            if isinstance(child, BaseButton) and getattr(child, "is_back", False):
+                self.remove_item(child)
+                break
+
+        embed = general_help_embed(
+            self.lang,
+            self.bot_info["bot_name"],
+            self.bot_info["bot_avatar_url"],
+            self.bot_info["owner_name"],
+            self.bot_info["owner_avatar_url"],
+            self.bot_info["version"],
+            self.bot_info["slash_cmds_cache"].get('help', 0),
+            self.cogs_dict
+        )
+
+        await interaction.response.edit_message(
+            embed = embed,
+            view = self
+        )

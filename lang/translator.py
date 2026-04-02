@@ -72,18 +72,15 @@ class Translator:
         return True
 
     def t(self, lang: str, path: str, key: str = None, **kwargs) -> str:
-        """
-        Translate a string based on the language and path provided.
-        'key' allows accessing a dynamic sub-property (e.g., description['general']).
-        """
-        
         if not isinstance(path, str):
             path = getattr(path, "all", str(path))
-        
+    
+        full_path = f"{path}.{key}" if key else path
+
         if not self._data:
             self.load()
 
-        keys = path.split('.')
+        keys = full_path.split('.')
         res = self._data.get(lang, {})
 
         for k in keys:
@@ -93,15 +90,14 @@ class Translator:
                 try:
                     res = res[int(k)]
                 except (ValueError, IndexError):
-                    res = None; break
+                    res = None
+                    break
             else:
-                res = None; break
-
-        if key and isinstance(res, dict):
-            res = res.get(key, res.get("__n_a", f"[{key} not found]"))
+                res = None
+                break
 
         if res is None:
-            return f"[{path}?!]"
+            return f"[{full_path}?!]"
 
         if isinstance(res, list):
             res = "\n".join(str(item) for item in res)

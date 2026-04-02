@@ -15,7 +15,6 @@ class Config(Cog):
 
         self.show = True
         self.icon = "⚙️"
-        self.description = "Configuration commands for server administrators."
 
     @app_commands.command(name = "lang", description = "Set the bot's language for this server.")
     @app_commands.describe(language = "The language to set the bot to.")
