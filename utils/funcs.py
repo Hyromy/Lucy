@@ -1,3 +1,6 @@
+import os
+import ast
+
 from urllib.parse import urljoin
 
 def normalize_url(base_url: str, endpoint: str, *,
@@ -79,3 +82,35 @@ def get_bot_info(lucy) -> dict:
         "version": lucy.VERSION,
         "slash_cmds_cache": lucy.cache.get('slash_cmds', {})
     }
+
+def count_commands_in_files(directory: str = "modules") -> dict:
+    """  Counts the number of app commands in each Python file within the specified directory. This is used to track command counts for caching purposes. """
+    command_stats = {}
+
+    for filename in os.listdir(directory):
+        if filename.endswith(".py") and not filename.startswith("__"):
+            path = os.path.join(directory, filename)
+            cog_name = filename[:-3]
+            count = 0
+
+            with open(path, "r", encoding="utf-8") as f:
+                try:
+                    node = ast.parse(f.read())
+                    for n in ast.walk(node):
+                        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                            for decorator in n.decorator_list:
+                                if isinstance(decorator, ast.Call):
+                                    func = decorator.func
+                                else:
+                                    func = decorator
+
+                                if hasattr(func, 'value') and isinstance(func.value, ast.Name):
+                                    if func.value.id == 'app_commands':
+                                        count += 1
+                                        break
+                except SyntaxError:
+                    continue
+
+            command_stats[cog_name] = count
+
+    return command_stats

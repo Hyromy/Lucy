@@ -64,7 +64,9 @@
                 }
             },
             "ping": {
-                "_help_description": "Checks the bot's latency."
+                "_help_description": "Checks the bot's latency.",
+                "bot": "Bot Latency",
+                "api": "API Latency"
             }
         },
         "config": {

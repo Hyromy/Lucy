@@ -3,38 +3,30 @@ from re import match as re_match
 from discord import (
     Intents,
     Interaction,
-    User,
 )
 from discord.ext.commands import Bot
 
 from classes.Api import ApiServices
+from classes.Config import Config
 from utils.logger import logger
 
 class Lucy(Bot):
-    def __init__(self, prefix: str = "!", intents: Intents = Intents.default(), *,
-        is_production: bool = False,
-        testing_guild_id: str = None,
-        owner: User = None,
-        version: str = None,
-
+    def __init__(self, intents: Intents = Intents.default(), *,
+        config: Config,
         apiServices: ApiServices = None,
         cache: dict = None,
 
         **kwargs
     ):
-        self.PRODUCTION = is_production
-        self.TESTING_GUILD_ID = testing_guild_id
-        self.OWNER = owner
-        self.VERSION = version
+        self.CONFIG = config
+        self.api = apiServices
+        self.cache = cache or {}
 
         super().__init__(
-            command_prefix = prefix,
+            command_prefix = config.PREFIX,
             intents = intents,
             **kwargs
         )
-
-        self.api = apiServices
-        self.cache = cache or {}
 		
     async def setup(self):
         self.remove_command("help")
@@ -48,7 +40,10 @@ class Lucy(Bot):
         if self.api:
             await self.api.close()
         
-    async def _cmd_err(self, cmd_name="unknown", *, interaction: Interaction, error: Exception):
+    async def _cmd_err(self, cmd_name = "unknown", *,
+        interaction: Interaction,
+        error: Exception
+    ):
         assert interaction is not None, "Interaction must be provided."
         assert error is not None, "Error must be provided."
         
@@ -79,4 +74,4 @@ class Lucy(Bot):
                 logger.info(f"Successfully loaded cog {filename}")
                 loaded += 1
         
-        logger.info(f"All cogs loaded. (t{len_files}/ l{loaded}/ f{failed}).")
+        logger.info(f"Cogs loaded. (t{len_files}/ l{loaded}/ f{failed}).")

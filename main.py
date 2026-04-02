@@ -1,36 +1,32 @@
 from asyncio import run
 from classes.Lucy import Lucy
+from classes.Config import Config, ConfigErr
 from discord import Intents
-from dotenv import load_dotenv
 from lang import l
-from os import getenv
 from utils.logger import logger
 
 def lang_key_gen():
-    logger.info("Generating keys.py from base language JSON...")
     try:
         l.generate_keys()
     except Exception as e:
         logger.error("Error generating keys.py", exc_info = e)
     else:
-        logger.info("keys.py generated successfully.")
-
+        logger.info("Generated keys.py successfully.")
 
 def prepare():
-    production = getenv("PRODUCTION", "False") == "True"
-    token = getenv(
-        ("" if production else "TESTING_") + "DISCORD_BOT_TOKEN"
-    )
+    try:
+        config = Config()
+    
+    except ConfigErr as e:
+        logger.error(f"Configuration error: {e}")
+        exit(1)
 
     intents = Intents.default()
     intents.message_content = True
 
-    lucy = Lucy(",", intents,
-        is_production = production,
-        testing_guild_id = getenv("TESTING_GUILD_ID"),
-    )
+    lucy = Lucy(intents, config = config)
 
-    return lucy, token
+    return lucy, config.TOKEN
 
 async def main(lucy: Lucy, token: str):
     await lucy.setup()
@@ -40,8 +36,6 @@ async def close(lucy: Lucy):
     await lucy.close()
 
 if __name__ == "__main__":
-    load_dotenv()
-
     lucy, token = prepare()
 
     try:

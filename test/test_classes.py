@@ -23,6 +23,10 @@ from classes.Api import (
 
     ApiServices,
 )
+from classes.Config import (
+    Config,
+    ConfigErr,
+)
 from classes.Lucy import(
     Lucy,
 )
@@ -265,23 +269,115 @@ class TestApiModule:
                 for name, cls in services
             )
 
+        @pytest.mark.asyncio
+        async def test_ping(self):
+            """ Test that the ping method correctly measures latency and handles errors. """
+
+            url = "http://example.com/api/"
+            session = MagicMock()
+            session.closed = False
+
+            api_services = ApiServices(url, session = session)
+
+            # Test successful ping
+            response = MagicMock()
+            response.status = 200
+
+            context_manager = MagicMock()
+            context_manager.__aenter__ = AsyncMock(return_value = response)
+            context_manager.__aexit__ = AsyncMock(return_value = None)
+
+            session.head.return_value = context_manager
+
+            latency = await api_services.ping()
+            assert latency >= 0
+            session.head.assert_called_once_with(url)
+
+            # Test ping with connection error
+            session.head.reset_mock()
+            session.head.side_effect = ClientConnectionError()
+
+            latency = await api_services.ping()
+            assert latency == -1.0
+            session.head.assert_called_once_with(url)
+
+        @pytest.mark.asyncio
+        async def test_close(self):
+            """ Test that the close method correctly closes the underlying API client session. """
+        
+            url = "http://example.com/api/"
+            session = AsyncMock()
+            session.closed = False
+            api_services = ApiServices(url, session = session)
+        
+            await api_services.close()
+            session.close.assert_awaited_once()
+
+class TestConfigModule:
+    class TestConfig:
+        def test_instance(self):
+            """ Test that a Config instance is created correctly with the expected properties. """
+
+            env_vars = {
+                "PRODUCTION": "False",
+                "TESTING_DISCORD_BOT_TOKEN": "abc",
+                "TESTING_GUILD_ID": "123"
+            }
+            with patch("classes.Config.load_dotenv"), patch.dict("os.environ", env_vars, clear = True):
+                config = Config()
+
+                assert config is not None
+                assert config.PREFIX == ","
+                assert config.TOKEN == "abc"
+                assert config.TESTING_GUILD_ID == "123"
+                assert not config.PRODUCTION
+
+        def test_missing_token_prod(self):
+            """ Test that a ConfigErr is raised if the required token is missing in production. """
+
+            with patch("classes.Config.load_dotenv"), patch.dict("os.environ", {"PRODUCTION": "True"}, clear = True):
+                with pytest.raises(ConfigErr) as exc:
+                    Config()
+                assert "DISCORD_BOT_TOKEN" in str(exc.value)
+
+        def test_missing_token_dev(self):
+            """ Test that ConfigErr is raised if variables are missing in dev. """
+            
+            # Missing TOKEN
+            with patch("classes.Config.load_dotenv"), patch.dict("os.environ", {"PRODUCTION": "False"}, clear = True):
+                with pytest.raises(ConfigErr) as exc:
+                    Config()
+                assert "TESTING_DISCORD_BOT_TOKEN" in str(exc.value)
+
+            # Missing GUILD_ID
+            env_only_token = {"PRODUCTION": "False", "TESTING_DISCORD_BOT_TOKEN": "abc"}
+            with patch("classes.Config.load_dotenv"), patch.dict("os.environ", env_only_token, clear = True):
+                with pytest.raises(ConfigErr) as exc:
+                    Config()
+                assert "TESTING_GUILD_ID" in str(exc.value)
+
 class TestLucyModule:
     class TestLucy:
         def test_instance(self):
             """ Test that a Lucy instance is created correctly with the expected default properties and methods. """
 
-            lucy = Lucy()
+            mock_config = MagicMock(spec=Config)
+            mock_config.PREFIX = "!"
+            mock_config.PRODUCTION = False
+            mock_config.TESTING_GUILD_ID = "123"
+
+            lucy = Lucy(config=mock_config)
 
             assert lucy.command_prefix == "!"
             assert lucy.intents == Intents.default()
-            assert not lucy.PRODUCTION
+            assert lucy.CONFIG == mock_config
             assert lucy.get_command("help") is not None
 
         @pytest.mark.asyncio
         async def test_load_cogs(self):
             """ Test that the _load_cogs method correctly loads valid cog files. """
 
-            lucy = Lucy()
+            lucy = Lucy(config=MagicMock())
 
             with (
                 patch("classes.Lucy.listdir") as listdir,
@@ -311,7 +407,7 @@ class TestLucyModule:
         async def test_load_cogs_on_err(self):
             """ Test that the _load_cogs method logs errors when loading raise exceptions. """
 
-            lucy = Lucy()
+            lucy = Lucy(config=MagicMock())
 
             with (
                 patch("classes.Lucy.listdir") as listdir,
@@ -332,7 +428,7 @@ class TestLucyModule:
         async def test_cmd_err(self):
             """ Test that the _cmd_err method logs the error and sends an appropriate response to the user. """
 
-            lucy = Lucy()
+            lucy = Lucy(config=MagicMock())
 
             interaction = MagicMock()
             interaction.response.is_done.return_value = False
@@ -358,7 +454,7 @@ class TestLucyModule:
         async def test_setup(self):
             """ Test that the setup method removes the default help command and loads cogs. """
             
-            lucy = Lucy()
+            lucy = Lucy(config=MagicMock())
 
             with patch.object(lucy, "_load_cogs", new_callable = AsyncMock) as mock_load_cogs:
                 await lucy.setup()
@@ -370,7 +466,7 @@ class TestLucyModule:
         async def test_start(self):
             """ Test that the start method calls the parent start method with the provided token. """
             
-            lucy = Lucy()
+            lucy = Lucy(config=MagicMock())
 
             with patch.object(Bot, "start", new_callable = AsyncMock) as mock_super_start:
                 await lucy.start("fake_token")
@@ -380,7 +476,7 @@ class TestLucyModule:
         async def test_close(self):
             """ Test that the close method calls the parent close method and closes the API client if it exists. """
             
-            lucy = Lucy(apiServices = AsyncMock())
+            lucy = Lucy(config = MagicMock(), apiServices = AsyncMock())
 
             with patch.object(Bot, "close", new_callable = AsyncMock) as mock_super_close:
                 await lucy.close()

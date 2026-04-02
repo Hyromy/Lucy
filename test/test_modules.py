@@ -25,10 +25,13 @@ class TestModulesModule:
         lucy.OWNER.name = "Owner"
         lucy.OWNER.display_avatar.url = "http://owner.com/avatar.png"
         lucy.VERSION = "1.0.0"
-        lucy.PRODUCTION = False
-        lucy.TESTING_GUILD_ID = 123
+        lucy.CONFIG = MagicMock()
+        lucy.CONFIG.PRODUCTION = False
+        lucy.CONFIG.TESTING_GUILD_ID = 123
         lucy.cache = {"slash_cmds": {}}
         lucy.api = MagicMock()
+        lucy.api.ping = AsyncMock(return_value=50.0)
+        lucy.api._client.path = "http://api.test"
         lucy._cmd_err = AsyncMock()
 
         return lucy
@@ -96,12 +99,12 @@ class TestModulesModule:
             ):
                 
                 mock_api_instance = mock_api_class.return_value
-                mock_api_instance.test = AsyncMock(return_value={"status": "ok"})
+                mock_api_instance.ping = AsyncMock(return_value=10.5)
                 
                 await cog.sync_api()
                 
                 assert mock_lucy.api is not None
-                mock_api_instance.test.assert_called_once()
+                mock_api_instance.ping.assert_called_once()
 
         @pytest.mark.asyncio
         async def test_sync_api_fail(self, mock_lucy):
@@ -115,7 +118,7 @@ class TestModulesModule:
                 patch("modules.Events.ApiServices") as mock_api_class
             ):
                 mock_api_instance = mock_api_class.return_value
-                mock_api_instance.test = AsyncMock(return_value={"status": "error"})
+                mock_api_instance.ping = AsyncMock(return_value=-1)
                 mock_api_instance.close = AsyncMock()
                 
                 await cog.sync_api()
@@ -142,9 +145,10 @@ class TestModulesModule:
             """ Test that the sync_commands method correctly attempts to sync commands to the testing guild when the bot is not in production mode. """
 
             cog = Events(mock_lucy)
-            mock_lucy.PRODUCTION = False
-            mock_lucy.TESTING_GUILD_ID = 987
+            mock_lucy.CONFIG.PRODUCTION = False
+            mock_lucy.CONFIG.TESTING_GUILD_ID = 987
             mock_lucy.tree.sync = AsyncMock()
+            mock_lucy.tree.copy_global_to = MagicMock()
             
             with patch("modules.Events.Object") as mock_obj:
                 await cog.sync_commands()
@@ -158,13 +162,19 @@ class TestModulesModule:
 
             cog = General(mock_lucy)
             interaction = AsyncMock()
+            interaction.client.latency = 0.05
             
             await cog.ping.callback(cog, interaction)
             
             interaction.response.send_message.assert_called_once()
-            response_text = interaction.response.send_message.call_args[0][0]
-            assert "Pong!" in response_text
-            assert "50.00ms" in response_text
+            _, kwargs = interaction.response.send_message.call_args
+            assert isinstance(kwargs["embed"], Embed)
+            
+            found_latency = False
+            for field in kwargs["embed"].fields:
+                if "50ms" in field.value:
+                    found_latency = True
+            assert found_latency
 
         @pytest.mark.asyncio
         async def test_help_command_no_category(self, mock_lucy):
