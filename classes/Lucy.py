@@ -1,40 +1,67 @@
-from os import getenv, listdir
+from os import listdir
 from re import match as re_match
-
 from discord import (
     Intents,
     Interaction,
-    User
+    User,
 )
 from discord.ext.commands import Bot
 
-from utils.funcs import get_lang_package
+from classes.Api import ApiServices
 from utils.logger import logger
 
 class Lucy(Bot):
-    def __init__(self):
-        intents = Intents.default()
-        intents.message_content = True
+    def __init__(self, prefix: str = "!", intents: Intents = Intents.default(), *,
+        is_production: bool = False,
+        testing_guild_id: str = None,
+        owner: User = None,
+        version: str = None,
+
+        apiServices: ApiServices = None,
+        cache: dict = {},
+
+        **kwargs
+    ):
+        self.PRODUCTION = is_production
+        self.TESTING_GUILD_ID = testing_guild_id
+        self.OWNER = owner
+        self.VERSION = version
+
         super().__init__(
-            command_prefix = ",",
-            intents = intents
+            command_prefix = prefix,
+            intents = intents,
+            **kwargs
         )
 
+        self.api = apiServices
+        self.cache = cache
+		
+    async def setup(self):
         self.remove_command("help")
+        await self._load_cogs()
 
-        self.PRODUCTION: bool = getenv("PRODUCTION", "False") == "True"
-        self.TESTING_GUILD_ID: str = getenv("TESTING_GUILD_ID")
-        self.OWNER: User = None
-        self.VERSION: str = None
+    async def start(self, token: str):
+        await super().start(token)
 
-        from utils.logger import logger
-        logger.info(f"Running in {'PRODUCTION' if self.PRODUCTION else 'DEBUG'} mode.")
+    async def close(self):
+        await super().close()
+        if self.api:
+            await self.api.close()
+        
+    async def _cmd_err(self, cmd_name="unknown", *, interaction: Interaction, error: Exception):
+        assert interaction is not None, "Interaction must be provided."
+        assert error is not None, "Error must be provided."
+        
+        logger.error(f"Error in {cmd_name} command", exc_info = error)
+        
+        content = "An error occurred while processing the command."
+        if interaction.response.is_done():
+            await interaction.followup.send(content, ephemeral = True)
+        
+        else:
+            await interaction.response.send_message(content, ephemeral = True)
 
-        self.api = None
-        self.cache = dict()
-        self.lang = get_lang_package()
-
-    async def load_cogs(self, dir: str = "modules"):
+    async def _load_cogs(self, dir: str = "modules"):
         loaded = 0
         failed = 0
         files = [i[:-3] for i in listdir(dir) if re_match(r"^(?!__)[A-Z][a-zA-Z0-9_]*\.py$", i)]
@@ -53,23 +80,3 @@ class Lucy(Bot):
                 loaded += 1
         
         logger.info(f"All cogs loaded. (t{len_files}/ l{loaded}/ f{failed}).")
-
-    async def cmd_err(self, cmd_name: str = "unknown", *, interaction: Interaction, error: Exception):
-        assert interaction is not None, "Interaction must be provided."
-        assert error is not None, "Error must be provided."
-
-        logger.error(f"Error in {cmd_name} command", exc_info=error)
-        content = "An error occurred while processing the command."
-        if interaction.response.is_done():
-            await interaction.followup.send(content, ephemeral = True)
-        else:
-            await interaction.response.send_message(content, ephemeral = True)
-
-    async def start(self):
-        await super().start(getenv(
-            ("" if self.PRODUCTION else "TESTING_") + "DISCORD_BOT_TOKEN"
-        ))
-
-    async def close(self):
-        await super().close()
-        if self.api: await self.api.close()

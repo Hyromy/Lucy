@@ -5,7 +5,7 @@ from asyncio import sleep
 from discord import Object, Guild
 from discord.ext import commands
 
-from classes.Api import Api
+from classes.Api import ApiServices
 from classes.Lucy import Lucy
 from utils.logger import logger
 
@@ -32,7 +32,7 @@ class Events(commands.Cog):
         rest_url = getenv("API_REST")
         if rest_url:
             try:
-                self.lucy.api = Api(rest_url)
+                self.lucy.api = ApiServices(rest_url)
                 result = await self.lucy.api.test()
                 if result["status"] != "ok":
                     raise ConnectionError(f"API test failed for endpoint {self.lucy.api._Api__url}/{self.lucy.api._Api__test_endpoint}")
@@ -98,12 +98,14 @@ class Events(commands.Cog):
 
             session = ClientSession()
             try:
-                async with session.get(url, headers = headers) as response:
+                async with session.get(url, headers = headers, timeout = 10) as response:
                     if response.status == 200:
                         self.lucy.VERSION = (await response.json())["tag_name"]
                         logger.info(f"Version set to {self.lucy.VERSION}.")
                     else:
-                        logger.error(f"Failed to fetch version info: HTTP {response.status}, {response.reason}.", exc_info=Exception(f"HTTP {response.status}"))
+                        logger.error(f"Failed to fetch version info: HTTP {response.status}, {response.reason}.", exc_info = Exception(f"HTTP {response.status}"))
+            except Exception as e:
+                logger.error("Timeout or connection error fetching version from GitHub.", exc_info = e)
             finally:
                 await session.close()
         else:
@@ -136,11 +138,16 @@ class Events(commands.Cog):
             await self.sync_api()
             await self.sync_commands()
             await self.sync_owner()
-            await self.sync_version()
+            
+            try:
+                await self.sync_version()
+            except Exception as e:
+                logger.error("Failed to sync version, continuing setup...", exc_info = e)
+
             await self.sync_cache()
 
         except Exception as e:
-            logger.error(f"Error during on_ready setup. Shutting down {self.lucy.user.name}", exc_info=e)
+            logger.error(f"Critical error during on_ready setup for {self.lucy.user.name}", exc_info = e)
             await self.lucy.close()
         
         else:
