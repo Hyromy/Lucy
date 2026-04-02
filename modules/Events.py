@@ -139,7 +139,6 @@ class Events(commands.Cog):
             await self.sync_commands()
             await self.sync_owner()
             
-            # Intentamos sincronizar versión pero no cerramos el bot si GitHub falla
             try:
                 await self.sync_version()
             except Exception as e:

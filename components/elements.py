@@ -9,6 +9,7 @@ from discord import (
     Interaction,
     User,
     Message,
+    SelectOption,
 )
 from discord.ui import (
     Button,
@@ -108,7 +109,7 @@ class BaseSelect(Select):
 
         min_values: int = 1,
         max_values: int = 1,
-        options: list = [],
+        options: list[SelectOption] = [],
 
         **kwargs
     ):
@@ -138,10 +139,6 @@ class BaseView(View):
 
     Allows you to set the `shared` and `author` attributes for all child components (buttons, selects, etc). If a component supports these attributes and does not define them explicitly, it will inherit the value from the view. If the component defines them, they will NOT be overwritten.
 
-    Supports optional timeout callbacks:
-    - `before_timeout`: async function executed before the view times out (useful for cleanup or pre-timeout actions).
-    - `after_timeout`: async function executed after the view times out (useful for logging, notifications, etc).
-
     - If `shared` is True (default), anyone can interact with the components.
     - If `shared` is False and `author` is set, only that user can interact.
 
@@ -150,8 +147,7 @@ class BaseView(View):
         shared (bool): Whether the components are shared among users or restricted to the author. Default is True.
         author (User): The user allowed to interact if not shared. Default is None.
         delete_on_timeout (bool): Whether to delete the associated message when the view times out. Default is False.
-        before_timeout (Callable[[], Awaitable[Any]]): Optional async callback before timeout.
-        after_timeout (Callable[[], Awaitable[Any]]): Optional async callback after timeout.
+        on_timeout_callback (Callable[[], Awaitable[Any]]): Optional async callback when the view times out.
         timeout (int): Time in seconds before the view times out. Default is 180.
 
     Example:
@@ -168,8 +164,7 @@ class BaseView(View):
         shared: bool = True,
         author: User = None,
         delete_on_timeout: bool = False,
-        before_timeout: Callable[[], Awaitable[Any]] = None,
-        after_timeout: Callable[[], Awaitable[Any]] = None,
+        on_timeout_callback: Callable[[], Awaitable[Any]] = None,
 
         timeout: int = 180
     ):
@@ -177,8 +172,7 @@ class BaseView(View):
         self.shared = shared
         self.author = author
         self.delete_on_timeout = delete_on_timeout
-        self.before_timeout = before_timeout
-        self.after_timeout = after_timeout
+        self.on_timeout_callback = on_timeout_callback
 
         self.append(*items)
 
@@ -225,18 +219,12 @@ class BaseView(View):
         self.message = message
 
     async def on_timeout(self):
-        if self.before_timeout:
+        if self.on_timeout_callback:
             try:
-                await self.before_timeout()
+                await self.on_timeout_callback()
             except Exception as e:
-                logger.error("Error in before_timeout callback.", exc_info = e)
+                logger.error("Error in on_timeout callback.", exc_info = e)
 
         if self.delete_on_timeout and hasattr(self, "message") and self.message is not None:
             self.stop()
             await self.message.delete()
-
-        if self.after_timeout:
-            try:
-                await self.after_timeout()
-            except Exception as e:
-                logger.error("Error in after_timeout callback.", exc_info = e)

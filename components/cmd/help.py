@@ -141,7 +141,6 @@ class GeneralHelpView(BaseView):
             delete_on_timeout = True
         )
 
-        # Si se inicializa con una categoría, añadimos el botón de atrás automáticamente
         if category:
             self._add_back_button()
 
