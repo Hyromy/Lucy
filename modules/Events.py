@@ -1,6 +1,5 @@
 from os import getenv
 
-from aiohttp import ClientSession
 from asyncio import sleep
 from discord import Object, Guild
 from discord.ext import commands
@@ -87,31 +86,6 @@ class Events(commands.Cog):
         else:
             logger.info(f"OWNER set to {self.lucy.OWNER}.")
 
-    async def sync_version(self):
-        url = getenv("RELEASES_URL")
-        if url:
-            headers = {}
-            github_token = getenv("GITHUB_TOKEN")
-            if github_token:
-                headers["Authorization"] = f"token {github_token}"
-            else:
-                logger.warning("GITHUB_TOKEN not found in env; proceeding unauthenticated may lead to rate limiting.")
-
-            session = ClientSession()
-            try:
-                async with session.get(url, headers = headers, timeout = 10) as response:
-                    if response.status == 200:
-                        self.lucy.VERSION = (await response.json())["tag_name"]
-                        logger.info(f"Version set to {self.lucy.VERSION}.")
-                    else:
-                        logger.error(f"Failed to fetch version info: HTTP {response.status}, {response.reason}.", exc_info = Exception(f"HTTP {response.status}"))
-            except Exception as e:
-                logger.error("Timeout or connection error fetching version from GitHub.", exc_info = e)
-            finally:
-                await session.close()
-        else:
-            logger.warning("No RELEASES_URL found; version info will be unavailable.")
-
     async def sync_cache(self):
         if self.lucy.CONFIG.PRODUCTION:
             cmds = await self.lucy.tree.fetch_commands()
@@ -137,11 +111,6 @@ class Events(commands.Cog):
             await self.sync_api()
             await self.sync_commands()
             await self.sync_owner()
-            
-            try:
-                await self.sync_version()
-            except Exception as e:
-                logger.error("Failed to sync version, continuing setup...", exc_info = e)
 
             await self.sync_cache()
 

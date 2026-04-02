@@ -24,8 +24,8 @@ class TestModulesModule:
         lucy.user.display_avatar.url = "http://bot.com/avatar.png"
         lucy.OWNER.name = "Owner"
         lucy.OWNER.display_avatar.url = "http://owner.com/avatar.png"
-        lucy.VERSION = "1.0.0"
         lucy.CONFIG = MagicMock()
+        lucy.CONFIG.VERSION = "1.0.0"
         lucy.CONFIG.PRODUCTION = False
         lucy.CONFIG.TESTING_GUILD_ID = 123
         lucy.cache = {"slash_cmds": {}}

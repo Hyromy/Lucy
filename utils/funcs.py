@@ -79,7 +79,7 @@ def get_bot_info(lucy) -> dict:
         "bot_avatar_url": lucy.user.display_avatar.url,
         "owner_name": lucy.OWNER.name,
         "owner_avatar_url": lucy.OWNER.display_avatar.url,
-        "version": lucy.VERSION,
+        "version": lucy.CONFIG.VERSION,
         "slash_cmds_cache": lucy.cache.get('slash_cmds', {})
     }
 

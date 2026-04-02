@@ -75,7 +75,7 @@ class TestUtilsModule:
             mock_lucy.user.display_avatar.url = "http://avatar.com"
             mock_lucy.OWNER.name = "Owner"
             mock_lucy.OWNER.display_avatar.url = "http://owner.com"
-            mock_lucy.VERSION = "2.0.0"
+            mock_lucy.CONFIG.VERSION = "2.0.0"
             mock_lucy.cache.get.return_value = {"help": 1}
             
             info = get_bot_info(mock_lucy)

@@ -31,7 +31,7 @@ class General(Cog):
         lang = "en"
 
         api_latency = "Offline"
-        latency = await self.lucy.api.ping()
+        latency = await self.lucy.api.ping() if self.lucy.api else -1
         if latency > 0:
             api_latency = f"{latency:.0f}ms"
 
