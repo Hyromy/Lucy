@@ -10,8 +10,11 @@ class Translator:
         try:
             from . import keys
             self.k = keys.K
+        
         except ImportError:
-            pass
+            self.generate_keys()
+            from . import keys
+            self.k = keys.K
 
     def load(self):
         """ Load all JSON files in the lang directory. Each file should be named with the language code (e.g., en.json, es.json) and contain a nested structure of keys and values for translations. """
