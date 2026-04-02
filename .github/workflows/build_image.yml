@@ -8,7 +8,11 @@ on:
       - main
 
 jobs:
+  quality-gate:
+    uses: ./.github/workflows/testing.yml
+
   build:
+    needs: quality-gate
     runs-on: ubuntu-latest
     
     steps:
