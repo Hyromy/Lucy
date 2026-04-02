@@ -1,3 +1,4 @@
+from time import perf_counter
 from abc import ABC, abstractmethod
 from aiohttp import (
     ClientSession,
@@ -196,5 +197,20 @@ class ApiServices:
 
         self.guild = _Guild(self._client)
 
+    async def ping(self) -> float:
+        """ Measure the latency of the API by sending a HEAD request to the base URL. """
+
+        start_time = perf_counter()
+        try:
+            async with self._client.session.head(self._client.path):
+                pass
+
+        except Exception:
+            return -1.0
+
+        return (perf_counter() - start_time) * 1000
+
     async def close(self):
+        """ Close the underlying HTTP session used by the API client. This should be called when the API services are no longer needed to free up resources. """
+
         await self._client.close()

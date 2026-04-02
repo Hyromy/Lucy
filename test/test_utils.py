@@ -1,10 +1,10 @@
-import pytest
 from unittest.mock import (
     MagicMock,
     patch,
 )
 
 from utils.funcs import (
+    count_commands_in_files,
     normalize_url,
     id_url_param,
     get_cogs_dict,
@@ -64,7 +64,7 @@ class TestUtilsModule:
             
             assert "General" in result
             assert result["General"]["name"] == "general"
-            assert result["General"]["show"] == True
+            assert result["General"]["show"]
             assert "ping" in result["General"]["app_commands"]
 
         def test_get_bot_info(self):
@@ -83,6 +83,36 @@ class TestUtilsModule:
             assert info["bot_name"] == "LucyBot"
             assert info["version"] == "2.0.0"
             assert info["slash_cmds_cache"] == {"help": 1}
+
+        def test_count_commands_in_files(self):
+            """ Test that count_commands_in_files correctly counts the number of app commands in Python files within a specified directory. """
+
+            mock_file_content = (
+                "from discord import app_commands\n"
+
+                "@app_commands.command()\n"
+                "async def cmd1(): pass\n"
+                
+                "@app_commands.command()\n"
+                "async def cmd2(): pass\n"
+                
+                "@app_commands.command()\n"
+                "async def cmd3(): pass"
+            )
+
+            mock_file_obj = MagicMock()
+            mock_file_obj.read.return_value = mock_file_content
+            mock_file_obj.__enter__.return_value = mock_file_obj
+
+            with (
+                patch("utils.funcs.os.listdir", return_value = ["cog1.py", "cog2.py"]),
+                patch("utils.funcs.os.path.join", side_effect = lambda d, f: f"{d}/{f}"),
+                patch("utils.funcs.open", return_value = mock_file_obj)
+            ):
+                counts = count_commands_in_files("modules")
+                assert "cog1" in counts
+                assert counts["cog1"] == 3
+                assert counts["cog2"] == 3
 
     class TestLogger:
         def test_handler_instance(self):
