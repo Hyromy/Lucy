@@ -93,7 +93,7 @@ class TestHelpModule:
 
                 assert len(view.children) >= 2
                 assert any(isinstance(c, BaseSelect) for c in view.children)
-                assert view.shared == False
+                assert not view.shared
                 assert view.author == mock_user
 
             def test_instance_with_category(self):
@@ -117,7 +117,7 @@ class TestHelpModule:
                 
                 select = next(c for c in view.children if isinstance(c, BaseSelect))
                 
-                with patch('components.cmd.help.cog_help_embed') as mock_embed:
+                with patch('components.cmd.help.cog_help_embed'):
                     await view.on_select(mock["interaction"]["author"], ["General"])
                     
                     assert any(opt.value == "General" and opt.default for opt in select.options)
@@ -227,7 +227,7 @@ class TestHelpModule:
                 select = BaseSelect("Choose an option", options = options)
 
                 assert len(select.options) == len(options)
-                for opt, mock_opt in zip(select.options, options):
+                for opt, mock_opt in zip(select.options, options, strict=False):
                     assert opt.label == mock_opt.label
                     assert opt.value == mock_opt.value
 
@@ -286,8 +286,8 @@ class TestHelpModule:
 
                 assert view is not None
                 assert len(view.children) == 0
-                assert view.shared == True
-                assert view.delete_on_timeout == False
+                assert view.shared
+                assert not view.delete_on_timeout
                 assert view.timeout is not None
 
             def test_propagate_attributes(self):
@@ -303,11 +303,11 @@ class TestHelpModule:
 
                 view.append(button, select, other)
 
-                assert button.shared == False
+                assert not button.shared
                 assert button.author == mock_author
-                assert select.shared == False
+                assert not select.shared
                 assert select.author == mock_author
-                assert other.shared == True
+                assert other.shared
                 assert other.author == mock_author
 
             def test_associate_message(self):

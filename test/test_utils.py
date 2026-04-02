@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import (
     MagicMock,
     patch,
@@ -64,7 +63,7 @@ class TestUtilsModule:
             
             assert "General" in result
             assert result["General"]["name"] == "general"
-            assert result["General"]["show"] == True
+            assert result["General"]["show"]
             assert "ping" in result["General"]["app_commands"]
 
         def test_get_bot_info(self):

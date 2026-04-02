@@ -76,7 +76,8 @@ class BaseButton(Button):
             self.view.stop()
             try:
                 await interaction.message.delete()
-            except:
+            except Exception:
+                logger.error("Failed to delete message for close button.", exc_info=True)
                 pass
 
 class BaseSelect(Select):
@@ -109,7 +110,7 @@ class BaseSelect(Select):
 
         min_values: int = 1,
         max_values: int = 1,
-        options: list[SelectOption] = [],
+        options: list[SelectOption] = None,
 
         **kwargs
     ):
@@ -117,7 +118,7 @@ class BaseSelect(Select):
             placeholder = placeholder,
             min_values = min_values,
             max_values = max_values,
-            options = options,
+            options = options or [],
             **kwargs
         )
 

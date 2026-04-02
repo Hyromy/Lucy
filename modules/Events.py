@@ -81,7 +81,7 @@ class Events(commands.Cog):
         try:
             self.lucy.OWNER = (await self.lucy.application_info()).owner
         except Exception as e:
-            logger.error(f"Failed to set OWNER", exc_info=e)
+            logger.error("Failed to set OWNER", exc_info=e)
         else:
             logger.info(f"OWNER set to {self.lucy.OWNER}.")
 
@@ -154,7 +154,8 @@ class Events(commands.Cog):
             print()
             logger.info(f"{self.lucy.user.name} is ready.")
         
-        if self.lucy.api: await self.__refill_guild_info()
+        if self.lucy.api:
+            await self.__refill_guild_info()
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: Guild):

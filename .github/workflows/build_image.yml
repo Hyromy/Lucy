@@ -9,7 +9,7 @@ on:
 
 jobs:
   quality-gate:
-    uses: ./.github/workflows/testing.yml
+    uses: ./.github/workflows/quality.yml
 
   build:
     needs: quality-gate

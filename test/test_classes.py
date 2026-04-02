@@ -274,7 +274,7 @@ class TestLucyModule:
 
             assert lucy.command_prefix == "!"
             assert lucy.intents == Intents.default()
-            assert lucy.PRODUCTION == False
+            assert not lucy.PRODUCTION
             assert lucy.get_command("help") is not None
 
         @pytest.mark.asyncio

@@ -1,4 +1,3 @@
-from discord.ext.commands import Cog
 from urllib.parse import urljoin
 
 def normalize_url(base_url: str, endpoint: str, *,
@@ -51,10 +50,10 @@ def get_cogs_dict(lucy) -> dict:
         cog_name = cog.__cog_name__
 
         app_commands = []
-        if hasattr(cog, 'get_app_commands') and callable(getattr(cog, 'get_app_commands')):
-            app_commands = list(getattr(cog, 'get_app_commands')())
+        if hasattr(cog, 'get_app_commands') and callable(cog.get_app_commands):
+            app_commands = list(cog.get_app_commands())
         elif hasattr(cog, 'app_commands'):
-            app_commands = list(getattr(cog, 'app_commands'))
+            app_commands = list(cog.app_commands)
 
         app_command_names = []
         for cmd in app_commands:

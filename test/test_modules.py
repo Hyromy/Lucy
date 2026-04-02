@@ -7,7 +7,6 @@ from unittest.mock import (
 
 from discord import (
     Embed,
-    Object,
 )
 
 from modules.Config import Config

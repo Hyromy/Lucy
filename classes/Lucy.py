@@ -18,7 +18,7 @@ class Lucy(Bot):
         version: str = None,
 
         apiServices: ApiServices = None,
-        cache: dict = {},
+        cache: dict = None,
 
         **kwargs
     ):
@@ -34,7 +34,7 @@ class Lucy(Bot):
         )
 
         self.api = apiServices
-        self.cache = cache
+        self.cache = cache or {}
 		
     async def setup(self):
         self.remove_command("help")
