@@ -3,6 +3,7 @@ from typing import Optional
 from discord import (
     app_commands,
     Interaction,
+    Embed,
 )
 from discord.ext.commands import Cog
 
@@ -16,6 +17,7 @@ from utils.funcs import (
     get_cogs_dict,
     get_bot_info
 )
+from lang import l
 
 class General(Cog):
     def __init__(self, lucy: Lucy):
@@ -26,10 +28,18 @@ class General(Cog):
 
     @app_commands.command(name = "ping", description = "Check the bot's latency.")
     async def ping(self, interaction: Interaction):
-        await interaction.response.send_message(
-            f"Pong! {self.lucy.latency * 1000:.2f}ms",
-            ephemeral = True
-        )
+        lang = "en"
+
+        api_latency = "Offline"
+        latency = await self.lucy.api.ping()
+        if latency > 0:
+            api_latency = f"{latency:.0f}ms"
+
+        embed = Embed(title = "🏓 Pong!")
+        embed.add_field(name = l.t(lang, l.k.cmds.general.ping.bot), value = f"{interaction.client.latency * 1000:.0f}ms")
+        embed.add_field(name = l.t(lang, l.k.cmds.general.ping.api), value = api_latency)
+
+        await interaction.response.send_message(embed = embed)
 
     @ping.error
     async def ping_error(self, interaction: Interaction, error: Exception):
@@ -41,8 +51,8 @@ class General(Cog):
         await interaction.response.defer()
         
         lang = "en"
-        if self.lucy.api:
-            lang = (await self.lucy.api.guild.get(interaction.guild_id))["lang"]
+        """ if self.lucy.api:
+            lang = (await self.lucy.api.guild.get(interaction.guild_id))["lang"] """
 
         cogs_dict = get_cogs_dict(self.lucy)
         bot_info = get_bot_info(self.lucy)

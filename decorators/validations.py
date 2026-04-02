@@ -77,7 +77,7 @@ def args_required(_args: list[tuple[Any, Any]] | list[Any] | Any | None = None):
                         value = bound_args.arguments[pair[0]]
                         if not isinstance(value, pair[1]):
                             raise ValueError(f"Parameter '{pair[0]}' must be of type {pair[1].__name__}.")
-                        if pair[1] == str and not value.strip():
+                        if pair[1] is str and not value.strip():
                             raise ValueError(f"Parameter '{pair[0]}' must be a non-empty string.")
                 
                 # simple names

@@ -1,6 +1,5 @@
 import pytest
 from unittest.mock import (
-    patch,
     MagicMock,
     AsyncMock,
 )
@@ -156,8 +155,8 @@ class TestDecoratorsModule:
             async def test_blocked(self):
                 """ Test that restrict_to_author blocks interaction if the user is not the author. """
                 
-                mock_author = MagicMock(id = 123)
-                mock_stranger = MagicMock(id = 987)
+                MagicMock(id = 123)
+                MagicMock(id = 987)
 
             @pytest.mark.asyncio
             async def test_shared_true_allowed_for_stranger(self):
