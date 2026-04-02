@@ -9,90 +9,53 @@ Discord bot de propósito general
 ## Índice
 - [Lucy](#lucy)
   - [Índice](#índice)
-  - [Estructura del proyecto](#estructura-del-proyecto)
   - [Variables de entorno](#variables-de-entorno)
-  - [Despliegue](#despliegue)
-    - [Local](#local)
-    - [Docker](#docker)
-
-## Estructura del proyecto
-
-Se posee una estructura modular
-
-```sh
-components/         # componentes UI
-modules/            # cogs
-utils/              # utilidades
-├── Lucy.py         # clase Bot
-└── *               # otras utilidades
-
-main.py             # Punto de entrada del Bot
-requirements.txt    # Dependencias
-```
+  - [Instalación](#instalación)
+    - [pip](#pip)
+    - [poetry](#poetry)
 
 ## Variables de entorno
 
-Para el caso de que `PRODUCTION=True`, solo debe de configurarse como mínimo `DISCORD_BOT_TOKEN`.
+Para configurar las variables de entorno, copia el archivo `.env.example` como `.env` en la raíz del proyecto y configura los valores según lo necesites.
 
-Por otro lado es necesario configurar `TESTING_DISCORD_BOT_TOKEN` y `TESTING_GUILD_ID`.
+Es necesario que dispongas de un token de bot de discord para ejecutar el proyecto. Puedes obtener tu token en [Discord Developer Portal](https://discord.com/developers/applications).
 
-Obtén tu Token en [Discord Developer Portal](https://discord.com/developers/applications)
+## Instalación
 
-Configura las variables de entorno creando en la raíz del proyecto un archivo nombrado `.env` y establece las claves necesarias
+### pip
 
-| Clave | Valor por defecto | Descripción | Requerido |
-| - | - | - | - |
-| `PRODUCTION` | `False` | Establece si el modo es de producción | No |
-| `DISCORD_BOT_TOKEN` | `None` | Token del bot  de producción | Cuando `PRODUCTION=True` |
-| `TESTING_DISCORD_BOT_TOKEN` | `None` | Token del bot de pruebas | Cuando `PRODUCTION=False` |
-| `TESTING_GUILD_ID` | `None` | Id de servidor de pruebas a sincronizar | Cuando `PRODUCTION=False` |
-| `RELEASES_URL` | `None` | Link de releases _(https://api.github.com/repos/{user}/{repo}/releases/latest)_ | No |
-| `GITHUB_TOKEN` | `None` | Token de github para autenticar la consulta de la versión | No |
-| `API_REST` | `None` | URL de API REST _(https://example-api/)_ | No |
-
-## Despliegue
-
-### Local
-
-1. Entorno virtual
-   
-   Crea un entorno virtual, como ejemplo se usa el módulo `venv`.
+1. Crea un entorno virtual:
    ```sh
-   py -m venv env
+   python -m venv env
    ```
 
-   Activa el entorno virtual.
+2. Activa el entorno virtual:
    ```sh
-   .\env\Scripts\activate     # Windows
+   env\Scripts\activate    # Windows
+   ```
+   
+   ```sh
+   source env/bin/activate    # Linux / macOS
    ```
 
-2. Dependencias
-   
-   Instala las [dependencias](requirements.txt).
+3. Instala las dependencias:
    ```sh
    pip install -r requirements.txt
    ```
 
-3. Iniciar el bot
+### poetry
+
+1. Instala las dependencias:
    ```sh
-   python main.py
+   poetry install
    ```
 
-### Docker
+2. Activa el entorno virtual:
+   ```sh
+   poetry shell
+   ```
 
-Puedes construir una imagen y contenedor con el [Dockerfile](Dockerfile).
+Posterior a la instalación ejecuta el proyecto:
 ```sh
-docker build -t app_image .
-
-# Linux/macOS:
-docker run --name app_container -d \
-    -e PRODUCTION=True \
-    -e DISCORD_BOT_TOKEN=your_token_here \
-    app_image
-
-# Windows PowerShell:
-docker run --name app_container -d `
-    -e PRODUCTION=True `
-    -e DISCORD_BOT_TOKEN=your_token_here `
-    app_image
+python main.py
 ```

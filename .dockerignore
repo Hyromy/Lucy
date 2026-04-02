@@ -88,6 +88,7 @@ celerybeat-schedule
 
 # Environments
 .env
+.env.example
 .venv
 env/
 venv/
@@ -126,3 +127,5 @@ secrets.json
 .github/
 LICENSE
 *.md
+test/
+/lang/keys.py
