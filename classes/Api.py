@@ -1,5 +1,4 @@
 from time import perf_counter
-from abc import ABC, abstractmethod
 from aiohttp import (
     ClientSession,
     ClientTimeout,
@@ -12,6 +11,9 @@ from tenacity import (
     wait_fixed,
     retry_if_exception,
 )
+from jwt import decode as jwt_decode
+from asyncio import Lock as AsyncLock
+from datetime import datetime, timezone
 
 from utils.funcs import (
     normalize_url,
@@ -54,6 +56,11 @@ class _ApiClient:
 
         self._session = session
         self._timeout = ClientTimeout(total = self.DEFAULT_TIMEOUT)
+        
+        self._token = None
+        self._refreshing_token = None
+        self._expire_at = 0
+        self._refresh_lock = AsyncLock()
 
     @property
     def session(self) -> ClientSession:
@@ -77,6 +84,21 @@ class _ApiClient:
         
         return False
 
+    def set_tokens(self, access_token: str, refresh_token: str):
+        self._token = access_token
+        self._refreshing_token = refresh_token
+
+        try:
+            payload = jwt_decode(access_token, options={"verify_signature": False})
+            self._expire_at = payload.get("exp", 0)
+        except:
+            self._expire_at = 0
+
+    async def refresh_handler(self):
+        """ This method is assigned from _Tokens.refresh """
+
+        pass
+
     @retry(
         stop = stop_after_attempt(RETRY_ATTEMPTS + 1),
         wait = wait_fixed(RETRY_BACKOFF),
@@ -86,6 +108,16 @@ class _ApiClient:
     async def _request(self, method: str, endpoint: str, /, **kwargs):
         if 'timeout' not in kwargs:
             kwargs['timeout'] = self._timeout
+
+        if self._token and "auth/token" not in endpoint:
+            now = datetime.now(timezone.utc).timestamp()
+            if self._expire_at - now < 30:
+                async with self._refresh_lock:
+                    await self.refresh_handler()
+
+            headers = kwargs.get("headers", {})
+            headers["Authorization"] = f"Bearer {self._token}"
+            kwargs["headers"] = headers
 
         path = normalize_url(self.path, endpoint, trailing_slash = self._use_slash)
         async with self.session.request(method, path, **kwargs) as response:
@@ -104,7 +136,7 @@ class _ApiClient:
     async def delete(self, endpoint: str, /, **kwargs):
         return await self._request("DELETE", endpoint, **kwargs)    
 
-class _ApiInterface(ABC):
+class _ApiInterface:
     r"""
     A base class for API service interfaces, providing common functionality for constructing endpoint URLs and making requests through an _ApiClient instance.
 
@@ -172,18 +204,60 @@ class _ApiInterface(ABC):
             )
         )
 
-    @abstractmethod
-    async def new(self, *args, **kwargs):
-        pass
-
-class _Guild(_ApiInterface):
+class _Tokens(_ApiInterface):
     def __init__(self, client: _ApiClient, /, *,
-        endpoint: str = "guild"
+        endpoint: str = "auth/token"
     ):
         super().__init__(client, endpoint)
     
-    async def new(self):
-        pass
+    def _set_tokens(self, data: dict):
+        self.client.set_tokens(
+            data.get("access"),
+            data.get("refresh")
+        )
+
+    async def get(self, username: str, password: str):
+        self._set_tokens(
+            await self.client.post(self.endpoint, json = {
+                "username": username,
+                "password": password,
+            })
+        )
+
+    async def refresh(self):
+        print("Refreshing tokens...")
+        self._set_tokens(
+            await self.client.post(
+                normalize_url(self.endpoint, "refresh", trailing_slash = self.client._use_slash),
+                json = {"refresh": self.client._refreshing_token}
+            )
+        )
+
+class _Guild(_ApiInterface):
+    def __init__(self, client: _ApiClient, /, *,
+        endpoint: str = "api/guilds"
+    ):
+        super().__init__(client, endpoint)
+    
+    async def new(self, id: int):
+        return await self.client.post(self.endpoint, json = {
+            "id": id
+        })
+
+    async def update(self, id: int, **kwargs):
+        return await self.client.patch(
+            normalize_url(self.endpoint, id_url_param(id),
+                trailing_slash = self.client._use_slash
+            ),
+            json = kwargs
+        )
+    
+    async def delete(self, id: int):
+        return await self.client.delete(
+            normalize_url(self.endpoint, id_url_param(id),
+                trailing_slash = self.client._use_slash
+            )
+        )
 
 class ApiServices:
     def __init__(self, path: str, /, *,
@@ -196,14 +270,18 @@ class ApiServices:
         )
 
         self.guild = _Guild(self._client)
+        self.tokens = _Tokens(self._client)
+
+        self._client.refresh_handler = self.tokens.refresh
 
     async def ping(self) -> float:
         """ Measure the latency of the API by sending a HEAD request to the base URL. """
 
         start_time = perf_counter()
+        url = f"{self._client.path}api/health/"
         try:
-            async with self._client.session.head(self._client.path):
-                pass
+            async with self._client.session.get(url) as response:
+                response.raise_for_status()
 
         except Exception:
             return -1.0
@@ -213,4 +291,5 @@ class ApiServices:
     async def close(self):
         """ Close the underlying HTTP session used by the API client. This should be called when the API services are no longer needed to free up resources. """
 
+        self._client.set_tokens(None, None)
         await self._client.close()

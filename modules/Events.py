@@ -16,8 +16,7 @@ class Events(commands.Cog):
     async def __refill_guild_info(self):
         for guild in self.lucy.guilds:
             try:
-                pass
-                # await self.lucy.api.guild.post(guild.id, guild.name)
+                await self.lucy.api.guild.new(guild.id)
             except Exception as e:
                 if not self.lucy.PRODUCTION:
                     logger.error(f"Failed to refill guild info for guild ID {guild.name}", exc_info=e)
@@ -87,6 +86,9 @@ class Events(commands.Cog):
             logger.info(f"OWNER set to {self.lucy.OWNER}.")
 
     async def sync_cache(self):
+        self.lucy.cache["tokens"] = {}
+        self.lucy.cache["slash_cmds"] = {}
+
         if self.lucy.CONFIG.PRODUCTION:
             cmds = await self.lucy.tree.fetch_commands()
             if len(cmds) == 0:
@@ -96,7 +98,6 @@ class Events(commands.Cog):
         else:
             if not self.lucy.CONFIG.TESTING_GUILD_ID:
                 logger.warning("TESTING_GUILD_ID in env is not set. Cannot cache test commands.")
-                self.lucy.cache["slash_cmds"] = {}
                 return
 
             guild = Object(self.lucy.CONFIG.TESTING_GUILD_ID)
@@ -104,6 +105,20 @@ class Events(commands.Cog):
         
         self.lucy.cache["slash_cmds"] = {cmd.name: cmd.id for cmd in cmds}
         logger.info(f"Cached ({len(cmds)}/{len(count_commands_in_files())}) commands.")
+
+    async def sync_tokens(self):
+        if self.lucy.api is None:
+            logger.warning("API not initialized. Cannot sync tokens.")
+            return
+        
+        try:
+            await self.lucy.api.tokens.get("Lucy", "Lucy")
+
+        except Exception as e:
+            logger.error("Failed to sync tokens", exc_info = e)
+        
+        else:
+            logger.info("Tokens synced successfully.")
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -113,6 +128,7 @@ class Events(commands.Cog):
             await self.sync_owner()
 
             await self.sync_cache()
+            await self.sync_tokens()
 
         except Exception as e:
             logger.error(f"Critical error during on_ready setup for {self.lucy.user.name}", exc_info = e)

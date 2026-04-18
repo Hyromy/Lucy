@@ -30,19 +30,20 @@ class Config(Cog):
     ):
         await interaction.response.defer()
         pre_lang = (await self.lucy.api.guild.get(interaction.guild_id))["lang"]
-        response = await self.lucy.api.guild.patch(interaction.guild.id, lang = language)
-        if response["ok"]:
-            ok = l.k.cmds.config.lang.ok
-            await interaction.followup.send(embed = Embed(
-                title = f"✅ {l.t(language, ok.title)}",
-                description = l.t(language, ok.msg)
-            ))
-        else:
+        try:
+            await self.lucy.api.guild.update(interaction.guild.id, lang = language)
+        except:
             err = l.k.cmds.config.lang.err
             await interaction.followup.send(embed = Embed(
                 title = f"⚠️ {l.t(pre_lang, err.title)}",
                 description = l.t(pre_lang, err.msg),
                 color = 0xFF0000
+            ))
+        else:
+            ok = l.k.cmds.config.lang.ok
+            await interaction.followup.send(embed = Embed(
+                title = f"✅ {l.t(language, ok.title)}",
+                description = l.t(language, ok.msg),
             ))
 
     @lang.error

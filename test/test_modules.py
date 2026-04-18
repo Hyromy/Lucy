@@ -46,12 +46,12 @@ class TestModulesModule:
             interaction.guild_id = 456
             
             mock_lucy.api.guild.get = AsyncMock(return_value={"lang": "en"})
-            mock_lucy.api.guild.patch = AsyncMock(return_value={"ok": True})
+            mock_lucy.api.guild.update = AsyncMock(return_value={"ok": True})
             
             await cog.lang.callback(cog, interaction, language="es")
             
             interaction.response.defer.assert_called_once()
-            mock_lucy.api.guild.patch.assert_called_with(interaction.guild.id, lang="es")
+            mock_lucy.api.guild.update.assert_called_with(interaction.guild.id, lang="es")
             interaction.followup.send.assert_called_once()
             _, kwargs = interaction.followup.send.call_args
             assert isinstance(kwargs["embed"], Embed)
@@ -66,7 +66,7 @@ class TestModulesModule:
             interaction.guild_id = 456
             
             mock_lucy.api.guild.get = AsyncMock(return_value={"lang": "en"})
-            mock_lucy.api.guild.patch = AsyncMock(return_value={"ok": False})
+            mock_lucy.api.guild.update = AsyncMock(side_effect=Exception("api error"))
             
             await cog.lang.callback(cog, interaction, language="es")
             
@@ -154,6 +154,39 @@ class TestModulesModule:
                 await cog.sync_commands()
                 mock_obj.assert_called_with(987)
                 mock_lucy.tree.sync.assert_called_once()
+
+        @pytest.mark.asyncio
+        async def test_sync_tokens_no_api(self, mock_lucy):
+            """ Test that sync_tokens exits early when API is not initialized. """
+
+            cog = Events(mock_lucy)
+            mock_lucy.api = None
+
+            with patch("modules.Events.logger") as logger:
+                await cog.sync_tokens()
+                logger.warning.assert_called_once()
+
+        @pytest.mark.asyncio
+        async def test_sync_tokens_success(self, mock_lucy):
+            """ Test that sync_tokens requests tokens from API with expected credentials. """
+
+            cog = Events(mock_lucy)
+            mock_lucy.api.tokens.get = AsyncMock()
+
+            await cog.sync_tokens()
+
+            mock_lucy.api.tokens.get.assert_awaited_once_with("Lucy", "Lucy")
+
+        @pytest.mark.asyncio
+        async def test_sync_tokens_error(self, mock_lucy):
+            """ Test that sync_tokens logs errors when token retrieval fails. """
+
+            cog = Events(mock_lucy)
+            mock_lucy.api.tokens.get = AsyncMock(side_effect = Exception("token error"))
+
+            with patch("modules.Events.logger") as logger:
+                await cog.sync_tokens()
+                logger.error.assert_called_once()
 
     class TestGeneral:
         @pytest.mark.asyncio

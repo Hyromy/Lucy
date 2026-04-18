@@ -97,6 +97,30 @@ class TestApiModule:
             )
             assert not _ApiClient._is_retryable(ValueError())
 
+        def test_set_tokens_sets_values(self):
+            """ Test that set_tokens stores tokens and expiration timestamp from JWT payload. """
+
+            api = _ApiClient("http://example.com")
+
+            with patch("classes.Api.jwt_decode", return_value = {"exp": 1234567890}):
+                api.set_tokens("access", "refresh")
+
+            assert api._token == "access"
+            assert api._refreshing_token == "refresh"
+            assert api._expire_at == 1234567890
+
+        def test_set_tokens_on_decode_error(self):
+            """ Test that set_tokens falls back to exp=0 when token decoding fails. """
+
+            api = _ApiClient("http://example.com")
+
+            with patch("classes.Api.jwt_decode", side_effect = Exception("invalid token")):
+                api.set_tokens("access", "refresh")
+
+            assert api._token == "access"
+            assert api._refreshing_token == "refresh"
+            assert api._expire_at == 0
+
         @pytest.mark.asyncio
         async def test_retry(self):
             """ Test that the retry mechanism works correctly for retryable errors and responses. """
@@ -214,6 +238,57 @@ class TestApiModule:
             _, kwargs = session.request.call_args
             assert kwargs["timeout"] == api._timeout
 
+        @pytest.mark.asyncio
+        async def test_request_adds_auth_header(self):
+            """ Test that authenticated requests include a Bearer Authorization header. """
+
+            session = MagicMock()
+            session.closed = False
+
+            response = MagicMock()
+            response.raise_for_status.return_value = None
+            response.json = AsyncMock(return_value = {"ok": True})
+
+            context_manager = MagicMock()
+            context_manager.__aenter__ = AsyncMock(return_value = response)
+            context_manager.__aexit__ = AsyncMock(return_value = None)
+            session.request.return_value = context_manager
+
+            api = _ApiClient("http://example.com", session = session)
+            api._token = "abc123"
+            api._expire_at = 9999999999
+
+            result = await api.get("guild")
+
+            assert result == {"ok": True}
+            _, kwargs = session.request.call_args
+            assert kwargs["headers"]["Authorization"] == "Bearer abc123"
+
+        @pytest.mark.asyncio
+        async def test_request_refreshes_token_when_expiring(self):
+            """ Test that refresh_handler is awaited when access token is close to expiration. """
+
+            session = MagicMock()
+            session.closed = False
+
+            response = MagicMock()
+            response.raise_for_status.return_value = None
+            response.json = AsyncMock(return_value = {"ok": True})
+
+            context_manager = MagicMock()
+            context_manager.__aenter__ = AsyncMock(return_value = response)
+            context_manager.__aexit__ = AsyncMock(return_value = None)
+            session.request.return_value = context_manager
+
+            api = _ApiClient("http://example.com", session = session)
+            api._token = "abc123"
+            api._expire_at = 0
+            api.refresh_handler = AsyncMock()
+
+            await api.get("guild")
+
+            api.refresh_handler.assert_awaited_once()
+
     class TestApiInterface:
         def test_instance(self):
             """ Test that an _ApiInterface subclass can be created correctly and has the expected properties and methods. """
@@ -247,8 +322,8 @@ class TestApiModule:
             guild = _Guild(_ApiClient(url))
 
             assert guild is not None
-            assert guild.endpoint == "guild"
-            assert guild.url == url + "guild/"
+            assert guild.endpoint == "api/guilds"
+            assert guild.url == url + "api/guilds/"
 
     class TestApiServices:
         def test_instance(self):
@@ -287,19 +362,19 @@ class TestApiModule:
             context_manager.__aenter__ = AsyncMock(return_value = response)
             context_manager.__aexit__ = AsyncMock(return_value = None)
 
-            session.head.return_value = context_manager
+            session.get.return_value = context_manager
 
             latency = await api_services.ping()
             assert latency >= 0
-            session.head.assert_called_once_with(url)
+            session.get.assert_called_once_with(f"{url}api/health/")
 
             # Test ping with connection error
-            session.head.reset_mock()
-            session.head.side_effect = ClientConnectionError()
+            session.get.reset_mock()
+            session.get.side_effect = ClientConnectionError()
 
             latency = await api_services.ping()
             assert latency == -1.0
-            session.head.assert_called_once_with(url)
+            session.get.assert_called_once_with(f"{url}api/health/")
 
         @pytest.mark.asyncio
         async def test_close(self):
