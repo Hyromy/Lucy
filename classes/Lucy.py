@@ -20,7 +20,11 @@ class Lucy(Bot):
     ):
         self.CONFIG = config
         self.api = apiServices
-        self.cache = cache or {}
+        self.cache = cache or {
+            "tokens": {},
+            "slash_cmds": {},
+            "guilds": {},
+        }
 
         super().__init__(
             command_prefix = config.PREFIX,

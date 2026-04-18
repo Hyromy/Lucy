@@ -21,6 +21,13 @@ class Events(commands.Cog):
                 if not self.lucy.PRODUCTION:
                     logger.error(f"Failed to refill guild info for guild ID {guild.name}", exc_info=e)
 
+    async def __sync_guilds_data(self):
+        try:
+            guilds = await self.lucy.api.guild.get()
+            self.lucy.cache["guilds"] = {guild["id"]: guild for guild in guilds}
+        except Exception as e:
+            logger.error("Failed to sync guilds data", exc_info=e)            
+
     async def sync_api(self):
         def not_available_msg():
             not_available = [
@@ -86,9 +93,6 @@ class Events(commands.Cog):
             logger.info(f"OWNER set to {self.lucy.OWNER}.")
 
     async def sync_cache(self):
-        self.lucy.cache["tokens"] = {}
-        self.lucy.cache["slash_cmds"] = {}
-
         if self.lucy.CONFIG.PRODUCTION:
             cmds = await self.lucy.tree.fetch_commands()
             if len(cmds) == 0:
@@ -112,7 +116,10 @@ class Events(commands.Cog):
             return
         
         try:
-            await self.lucy.api.tokens.get("Lucy", "Lucy")
+            await self.lucy.api.tokens.get(
+                self.lucy.CONFIG.API_REST_USERNAME,
+                self.lucy.CONFIG.API_REST_PASSWORD
+            )
 
         except Exception as e:
             logger.error("Failed to sync tokens", exc_info = e)
@@ -139,14 +146,15 @@ class Events(commands.Cog):
         
         if self.lucy.api:
             await self.__refill_guild_info()
+            await self.__sync_guilds_data()
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: Guild):
         if self.lucy.api:
             try:
-                await self.lucy.api.guild.post(guild.id, guild.name)
+                await self.lucy.api.guild.new(guild.id)
             except Exception as e:
-                logger.error(f"Failed to add guild info for guild ID {guild.name}", exc_info=e)
+                logger.error(f"Failed to add guild info for guild {guild.name}, ID: {guild.id}", exc_info=e)
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild: Guild):
@@ -154,7 +162,7 @@ class Events(commands.Cog):
             try:
                 await self.lucy.api.guild.delete(guild.id)
             except Exception as e:
-                logger.error(f"Failed to remove guild info for guild ID {guild.name}", exc_info=e)
+                logger.error(f"Failed to remove guild info for guild {guild.name}, ID: {guild.id}", exc_info=e)
 
 async def setup(lucy: Lucy):
     await lucy.add_cog(Events(lucy))

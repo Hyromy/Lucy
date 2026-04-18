@@ -19,6 +19,7 @@ from utils.funcs import (
     normalize_url,
     id_url_param,
 )
+from utils.logger import logger
 
 class _ApiClient:
     r"""
@@ -91,7 +92,9 @@ class _ApiClient:
         try:
             payload = jwt_decode(access_token, options={"verify_signature": False})
             self._expire_at = payload.get("exp", 0)
-        except:
+        except Exception as e:
+            logger.error("Failed to decode access token for expiration time", exc_info=e)
+
             self._expire_at = 0
 
     async def refresh_handler(self):
@@ -120,6 +123,7 @@ class _ApiClient:
             kwargs["headers"] = headers
 
         path = normalize_url(self.path, endpoint, trailing_slash = self._use_slash)
+
         async with self.session.request(method, path, **kwargs) as response:
             response.raise_for_status()
             return await response.json()
@@ -225,7 +229,6 @@ class _Tokens(_ApiInterface):
         )
 
     async def refresh(self):
-        print("Refreshing tokens...")
         self._set_tokens(
             await self.client.post(
                 normalize_url(self.endpoint, "refresh", trailing_slash = self.client._use_slash),

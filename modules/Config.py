@@ -8,6 +8,7 @@ from discord.ext.commands import Cog
 from decorators import validations
 from lang import l
 from classes.Lucy import Lucy
+from utils.logger import logger
 
 class Config(Cog):
     def __init__(self, lucy: Lucy):
@@ -29,10 +30,13 @@ class Config(Cog):
         language: str
     ):
         await interaction.response.defer()
-        pre_lang = (await self.lucy.api.guild.get(interaction.guild_id))["lang"]
+        
+        pre_lang = self.lucy.cache["guilds"].get(str(interaction.guild.id))["lang"]["code"]
         try:
-            await self.lucy.api.guild.update(interaction.guild.id, lang = language)
-        except:
+            response = await self.lucy.api.guild.update(interaction.guild.id, lang = language)
+        except Exception as e:
+            logger.error("Failed to update guild language", exc_info=e)
+
             err = l.k.cmds.config.lang.err
             await interaction.followup.send(embed = Embed(
                 title = f"⚠️ {l.t(pre_lang, err.title)}",
@@ -40,6 +44,8 @@ class Config(Cog):
                 color = 0xFF0000
             ))
         else:
+            self.lucy.cache["guilds"][str(interaction.guild.id)] = response
+
             ok = l.k.cmds.config.lang.ok
             await interaction.followup.send(embed = Embed(
                 title = f"✅ {l.t(language, ok.title)}",

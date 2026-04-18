@@ -28,7 +28,14 @@ class TestModulesModule:
         lucy.CONFIG.VERSION = "1.0.0"
         lucy.CONFIG.PRODUCTION = False
         lucy.CONFIG.TESTING_GUILD_ID = 123
-        lucy.cache = {"slash_cmds": {}}
+        lucy.CONFIG.API_REST_USERNAME = "Lucy"
+        lucy.CONFIG.API_REST_PASSWORD = "Lucy"
+        lucy.cache = {
+            "slash_cmds": {},
+            "guilds": {
+                "456": {"lang": {"code": "en"}},
+            },
+        }
         lucy.api = MagicMock()
         lucy.api.ping = AsyncMock(return_value=50.0)
         lucy.api._client.path = "http://api.test"
@@ -43,7 +50,7 @@ class TestModulesModule:
 
             cog = Config(mock_lucy)
             interaction = AsyncMock()
-            interaction.guild_id = 456
+            interaction.guild.id = 456
             
             mock_lucy.api.guild.get = AsyncMock(return_value={"lang": "en"})
             mock_lucy.api.guild.update = AsyncMock(return_value={"ok": True})
@@ -63,7 +70,7 @@ class TestModulesModule:
 
             cog = Config(mock_lucy)
             interaction = AsyncMock()
-            interaction.guild_id = 456
+            interaction.guild.id = 456
             
             mock_lucy.api.guild.get = AsyncMock(return_value={"lang": "en"})
             mock_lucy.api.guild.update = AsyncMock(side_effect=Exception("api error"))
@@ -195,6 +202,7 @@ class TestModulesModule:
 
             cog = General(mock_lucy)
             interaction = AsyncMock()
+            interaction.guild.id = 456
             interaction.client.latency = 0.05
             
             await cog.ping.callback(cog, interaction)
@@ -215,6 +223,7 @@ class TestModulesModule:
 
             cog = General(mock_lucy)
             interaction = AsyncMock()
+            interaction.guild.id = 456
             interaction.followup.send = AsyncMock()
             
             mock_lucy.api.guild.get = AsyncMock(return_value={"lang": "en"})
@@ -246,6 +255,7 @@ class TestModulesModule:
 
             cog = General(mock_lucy)
             interaction = AsyncMock()
+            interaction.guild.id = 456
             
             mock_lucy.api.guild.get = AsyncMock(return_value={"lang": "es"})
             cogs_dict = {"General": {"name": "general", "app_commands": []}}
@@ -268,6 +278,7 @@ class TestModulesModule:
 
             cog = General(mock_lucy)
             interaction = AsyncMock()
+            interaction.guild.id = 456
             
             mock_lucy.api.guild.get = AsyncMock(return_value={"lang": "en"})
             
