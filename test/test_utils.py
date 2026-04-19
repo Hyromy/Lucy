@@ -9,6 +9,7 @@ from utils.funcs import (
     id_url_param,
     get_cogs_dict,
     get_bot_info,
+    is_valid_cog_filename,
 )
 
 from utils.logger import (
@@ -17,6 +18,15 @@ from utils.logger import (
 
 class TestUtilsModule:
     class TestFuncs:
+        def test_is_valid_cog_filename(self):
+            """ Test that is_valid_cog_filename accepts PascalCase .py files and rejects invalid names. """
+
+            assert is_valid_cog_filename("General.py")
+            assert is_valid_cog_filename("Valid_Cog.py")
+            assert not is_valid_cog_filename("general.py")
+            assert not is_valid_cog_filename("_Cog.py")
+            assert not is_valid_cog_filename("NotPython.txt")
+
         def test_normalize_url(self):
             """ Test that normalize_url correctly constructs a URL from a base and endpoint, and handles trailing slashes as expected. """
 
@@ -85,7 +95,7 @@ class TestUtilsModule:
             assert info["slash_cmds_cache"] == {"help": 1}
 
         def test_count_commands_in_files(self):
-            """ Test that count_commands_in_files correctly counts the number of app commands in Python files within a specified directory. """
+            """ Test that count_commands_in_files returns the total command count across valid cog files. """
 
             mock_file_content = (
                 "from discord import app_commands\n"
@@ -105,14 +115,17 @@ class TestUtilsModule:
             mock_file_obj.__enter__.return_value = mock_file_obj
 
             with (
-                patch("utils.funcs.os.listdir", return_value = ["cog1.py", "cog2.py"]),
-                patch("utils.funcs.os.path.join", side_effect = lambda d, f: f"{d}/{f}"),
+                patch(
+                    "utils.funcs.os.walk",
+                    return_value = [
+                        ("modules", [], ["Config.py", "general.py", "__init__.py"]),
+                        ("modules/Events", [], ["Sync.py", "gossiper.py"]),
+                    ],
+                ),
                 patch("utils.funcs.open", return_value = mock_file_obj)
             ):
-                counts = count_commands_in_files("modules")
-                assert "cog1" in counts
-                assert counts["cog1"] == 3
-                assert counts["cog2"] == 3
+                total = count_commands_in_files("modules")
+                assert total == 6
 
     class TestLogger:
         def test_handler_instance(self):

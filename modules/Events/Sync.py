@@ -1,51 +1,45 @@
+from aiohttp import ClientResponseError
+from asyncio import sleep
 from os import getenv
 
-from asyncio import sleep
-from discord import Object, Guild
+from discord import Object
 from discord.ext import commands
-from aiohttp import ClientResponseError
 
-from classes.Api import ApiServices
 from classes.Lucy import Lucy
+from classes.Api import ApiServices
 from utils.logger import logger
 from utils.funcs import count_commands_in_files
 
-class Events(commands.Cog):
+class Sync(commands.Cog):
     def __init__(self, lucy: Lucy):
         self.lucy = lucy
 
-    async def __refill_guild_info(self):
-        for guild in self.lucy.guilds:
-            try:
-                await self.lucy.api.guild.new(guild.id)
-            except ClientResponseError as e:
-                if e.status in (400, 409):
-                    if not self.lucy.CONFIG.PRODUCTION:
-                        logger.info(f"Guild already exists in API: {guild.name} ({guild.id})")
-                    continue
-
-                logger.error(
-                    f"Error HTTP while refilling guild info for guild {guild.name} ({guild.id})",
-                    exc_info=e
-                )
-
-            except Exception as e:
-                logger.error(
-                    f"Unexpected error while refilling guild info for guild {guild.name} ({guild.id})",
-                    exc_info=e
-                )
-
-    async def __sync_guilds_data(self):
+    @commands.Cog.listener()
+    async def on_ready(self):
         try:
-            guilds = await self.lucy.api.guild.get()
-            self.lucy.cache["guilds"] = {guild["id"]: guild for guild in guilds}
+            await self.sync_api()
+            await self.sync_commands()
+            await self.sync_owner()
+
+            await self.sync_slash_cmds_cache()
+            await self.sync_tokens_cache()
+
         except Exception as e:
-            logger.error("Failed to sync guilds data", exc_info=e)            
+            logger.error(f"Critical error during Sync.on_ready setup for {self.lucy.user.name}", exc_info = e)
+            await self.lucy.close()
+        
+        else:
+            logger.info("Sync setup completed successfully.")
+        
+        if self.lucy.api:
+            await self._refill_guild_info()
+            await self._sync_guilds_data()
 
     async def sync_api(self):
         def not_available_msg():
             not_available = [
                 "language features",
+                "data syncing",
             ]
             logger.warning(f"API_REST not found in env; API functionality ({', '.join(not_available)}) will be unavailable.")
 
@@ -97,7 +91,7 @@ class Events(commands.Cog):
                     ok()
             else:
                 logger.warning("TESTING_GUILD_ID in env is not set. Cannot sync test commands.")
-    
+
     async def sync_owner(self):
         try:
             self.lucy.OWNER = (await self.lucy.application_info()).owner
@@ -106,7 +100,7 @@ class Events(commands.Cog):
         else:
             logger.info(f"OWNER set to {self.lucy.OWNER}.")
 
-    async def sync_cache(self):
+    async def sync_slash_cmds_cache(self):
         if self.lucy.CONFIG.PRODUCTION:
             cmds = await self.lucy.tree.fetch_commands()
             if len(cmds) == 0:
@@ -122,9 +116,9 @@ class Events(commands.Cog):
             cmds = await self.lucy.tree.fetch_commands(guild = guild)
         
         self.lucy.cache["slash_cmds"] = {cmd.name: cmd.id for cmd in cmds}
-        logger.info(f"Cached ({len(cmds)}/{len(count_commands_in_files())}) commands.")
+        logger.info(f"Cached ({len(cmds)}/{count_commands_in_files()}) commands.")
 
-    async def sync_tokens(self):
+    async def sync_tokens_cache(self):
         if self.lucy.api is None:
             logger.warning("API not initialized. Cannot sync tokens.")
             return
@@ -141,42 +135,33 @@ class Events(commands.Cog):
         else:
             logger.info("Tokens synced successfully.")
 
-    @commands.Cog.listener()
-    async def on_ready(self):
-        try:
-            await self.sync_api()
-            await self.sync_commands()
-            await self.sync_owner()
-
-            await self.sync_cache()
-            await self.sync_tokens()
-
-        except Exception as e:
-            logger.error(f"Critical error during on_ready setup for {self.lucy.user.name}", exc_info = e)
-            await self.lucy.close()
-        
-        else:
-            logger.info(f"{self.lucy.user.name} is ready.")
-        
-        if self.lucy.api:
-            await self.__refill_guild_info()
-            await self.__sync_guilds_data()
-
-    @commands.Cog.listener()
-    async def on_guild_join(self, guild: Guild):
-        if self.lucy.api:
+    async def _refill_guild_info(self):
+        for guild in self.lucy.guilds:
             try:
                 await self.lucy.api.guild.new(guild.id)
-            except Exception as e:
-                logger.error(f"Failed to add guild info for guild {guild.name}, ID: {guild.id}", exc_info=e)
+            except ClientResponseError as e:
+                if e.status in (400, 409):
+                    if not self.lucy.CONFIG.PRODUCTION:
+                        logger.info(f"Guild already exists in API: {guild.name} ({guild.id})")
+                    continue
 
-    @commands.Cog.listener()
-    async def on_guild_remove(self, guild: Guild):
-        if self.lucy.api:
-            try:
-                await self.lucy.api.guild.delete(guild.id)
+                logger.error(
+                    f"Error HTTP while refilling guild info for guild {guild.name} ({guild.id})",
+                    exc_info=e
+                )
+
             except Exception as e:
-                logger.error(f"Failed to remove guild info for guild {guild.name}, ID: {guild.id}", exc_info=e)
+                logger.error(
+                    f"Unexpected error while refilling guild info for guild {guild.name} ({guild.id})",
+                    exc_info=e
+                )
+
+    async def _sync_guilds_data(self):
+        try:
+            guilds = await self.lucy.api.guild.get()
+            self.lucy.cache["guilds"] = {guild["id"]: guild for guild in guilds}
+        except Exception as e:
+            logger.error("Failed to sync guilds data", exc_info=e)
 
 async def setup(lucy: Lucy):
-    await lucy.add_cog(Events(lucy))
+    await lucy.add_cog(Sync(lucy))

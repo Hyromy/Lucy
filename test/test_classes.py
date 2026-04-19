@@ -30,6 +30,9 @@ from classes.Config import (
 from classes.Lucy import(
     Lucy,
 )
+from classes.RedisEventBus import (
+    RedisEventBus,
+)
 
 class TestApiModule:
     class TestApiClient:
@@ -455,28 +458,22 @@ class TestLucyModule:
             lucy = Lucy(config=MagicMock())
 
             with (
-                patch("classes.Lucy.listdir") as listdir,
+                patch("classes.Lucy.os.walk") as walk,
                 patch("classes.Lucy.logger"),
                 patch.object(lucy, "load_extension", new_callable=AsyncMock) as load_extension,
             ):
-                listdir.return_value = [
-                    "MyCog.py",
-                    "anotherCog.py",
-                    "__init__.py",
-                    "notACog.txt",
-                    "MayBeACog.txt",
-                    "_Cog.py",
-                    "1Invalid.py",
-                    "Valid_Cog.py",
+                walk.return_value = [
+                    ("modules", [], ["MyCog.py", "anotherCog.py", "__init__.py", "notACog.txt"]),
+                    ("cogs", [], ["MayBeACog.txt", "_Cog.py", "1Invalid.py", "Valid_Cog.py"]),
+                    ("modules/Events", [], ["Events.py"]),
                 ]
                 load_extension.return_value = None
 
                 await lucy._load_cogs("cogs")
 
-                listdir.assert_called_once_with("cogs")
-                load_extension.assert_any_await("cogs.MyCog")
+                walk.assert_called_once_with("cogs")
                 load_extension.assert_any_await("cogs.Valid_Cog")
-                assert load_extension.await_count == 2
+                assert load_extension.await_count == 3
 
         @pytest.mark.asyncio
         async def test_load_cogs_on_err(self):
@@ -485,16 +482,19 @@ class TestLucyModule:
             lucy = Lucy(config=MagicMock())
 
             with (
-                patch("classes.Lucy.listdir") as listdir,
+                patch("classes.Lucy.os.walk") as walk,
                 patch("classes.Lucy.logger") as logger,
                 patch.object(lucy, "load_extension", new_callable = AsyncMock) as load_extension,
             ):
-                listdir.return_value = ["InvalidCog.py"]
+                walk.return_value = [
+                    ("cogs", [], ["InvalidCog.py"])
+                ]
+
                 load_extension.side_effect = Exception("Failed to load cog")
 
                 await lucy._load_cogs("cogs")
 
-                listdir.assert_called_once_with("cogs")
+                walk.assert_called_once_with("cogs")
                 load_extension.assert_awaited_once_with("cogs.InvalidCog")
                 logger.error.assert_called_once()
                 assert len(lucy.cogs) == 0
@@ -557,3 +557,174 @@ class TestLucyModule:
                 await lucy.close()
                 mock_super_close.assert_awaited_once()
                 lucy.api.close.assert_awaited_once()
+
+
+class TestRedisEventBusModule:
+    class TestRedisEventBus:
+        @pytest.mark.asyncio
+        async def test_start_without_redis_url(self):
+            """ Test that start returns False and logs warning if REDIS_URL is missing. """
+
+            with (
+                patch("classes.RedisEventBus.getenv", return_value = None),
+                patch("classes.RedisEventBus.logger") as logger,
+            ):
+                bus = RedisEventBus()
+                result = await bus.start(on_event = AsyncMock())
+
+                assert result is False
+                logger.warning.assert_called_once_with("REDIS_URL not found in env; Redis event listener disabled.")
+
+        @pytest.mark.asyncio
+        async def test_start_when_already_running(self):
+            """ Test that start exits early when listener task already exists. """
+
+            bus = RedisEventBus(redis_url = "redis://localhost:6379")
+            bus._task = object()
+
+            with patch("classes.RedisEventBus.redis.from_url") as from_url:
+                result = await bus.start(on_event = AsyncMock())
+
+                assert result is True
+                from_url.assert_not_called()
+
+        @pytest.mark.asyncio
+        async def test_start_success(self):
+            """ Test that start initializes redis pubsub, subscribes and creates listener task. """
+
+            bus = RedisEventBus(redis_url = "redis://localhost:6379")
+
+            redis_client = MagicMock()
+            pubsub = MagicMock()
+            pubsub.psubscribe = AsyncMock()
+            redis_client.pubsub.return_value = pubsub
+
+            fake_task = object()
+
+            def _create_task(coro):
+                coro.close()
+                return fake_task
+
+            with (
+                patch("classes.RedisEventBus.redis.from_url", return_value = redis_client),
+                patch("classes.RedisEventBus.create_task", side_effect = _create_task),
+            ):
+                result = await bus.start(on_event = AsyncMock())
+
+                assert result is True
+                pubsub.psubscribe.assert_awaited_once_with("lucy.*")
+                assert bus._task is fake_task
+
+        @pytest.mark.asyncio
+        async def test_stop_cancels_task_and_closes_clients(self):
+            """ Test that stop cancels running task and closes clients. """
+
+            bus = RedisEventBus(redis_url = "redis://localhost:6379")
+
+            loop = __import__("asyncio").get_running_loop()
+            task = loop.create_future()
+            task.set_result(None)
+            bus._task = task
+
+            bus._close_clients = AsyncMock()
+
+            await bus.stop()
+
+            assert bus._task is None
+            bus._close_clients.assert_awaited_once()
+
+        @pytest.mark.asyncio
+        async def test_close_clients(self):
+            """ Test that _close_clients closes pubsub and redis client and clears references. """
+
+            bus = RedisEventBus(redis_url = "redis://localhost:6379")
+            bus._pubsub = MagicMock()
+            bus._pubsub.close = AsyncMock()
+            bus._redis = MagicMock()
+            bus._redis.aclose = AsyncMock()
+
+            pubsub = bus._pubsub
+            redis_client = bus._redis
+
+            await bus._close_clients()
+
+            pubsub.close.assert_awaited_once()
+            redis_client.aclose.assert_awaited_once()
+            assert bus._pubsub is None
+            assert bus._redis is None
+
+        @pytest.mark.asyncio
+        async def test_listener_loop_dispatches_valid_event(self):
+            """ Test that _listener_loop decodes and dispatches valid pmessage payloads. """
+
+            bus = RedisEventBus(redis_url = "redis://localhost:6379")
+
+            async def _messages():
+                yield {
+                    "type": "pmessage",
+                    "channel": b"lucy.guild.updated",
+                    "data": b'{"id":"1","event":"lucy.guild.updated"}',
+                }
+
+            pubsub = MagicMock()
+            pubsub.listen = _messages
+            bus._pubsub = pubsub
+
+            on_event = AsyncMock()
+
+            await bus._listener_loop(on_event = on_event)
+
+            on_event.assert_awaited_once_with(
+                "lucy.guild.updated",
+                {"id": "1", "event": "lucy.guild.updated"},
+            )
+
+        @pytest.mark.asyncio
+        async def test_listener_loop_invalid_json(self):
+            """ Test that _listener_loop ignores invalid JSON payloads. """
+
+            bus = RedisEventBus(redis_url = "redis://localhost:6379")
+
+            async def _messages():
+                yield {
+                    "type": "pmessage",
+                    "channel": "lucy.guild.updated",
+                    "data": "not-json",
+                }
+
+            pubsub = MagicMock()
+            pubsub.listen = _messages
+            bus._pubsub = pubsub
+
+            on_event = AsyncMock()
+
+            with patch("classes.RedisEventBus.logger") as logger:
+                await bus._listener_loop(on_event = on_event)
+                logger.warning.assert_called_once()
+
+            on_event.assert_not_awaited()
+
+        @pytest.mark.asyncio
+        async def test_listener_loop_json_not_object(self):
+            """ Test that _listener_loop ignores JSON payloads that are not objects. """
+
+            bus = RedisEventBus(redis_url = "redis://localhost:6379")
+
+            async def _messages():
+                yield {
+                    "type": "pmessage",
+                    "channel": "lucy.guild.updated",
+                    "data": "[1, 2, 3]",
+                }
+
+            pubsub = MagicMock()
+            pubsub.listen = _messages
+            bus._pubsub = pubsub
+
+            on_event = AsyncMock()
+
+            with patch("classes.RedisEventBus.logger") as logger:
+                await bus._listener_loop(on_event = on_event)
+                logger.warning.assert_called_once()
+
+            on_event.assert_not_awaited()

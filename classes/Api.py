@@ -112,15 +112,18 @@ class _ApiClient:
         if 'timeout' not in kwargs:
             kwargs['timeout'] = self._timeout
 
+        headers = kwargs.get("headers", {})
+        headers["X-Source"] = "bot"
+
         if self._token and "auth/token" not in endpoint:
             now = datetime.now(timezone.utc).timestamp()
             if self._expire_at - now < 30:
                 async with self._refresh_lock:
                     await self.refresh_handler()
 
-            headers = kwargs.get("headers", {})
             headers["Authorization"] = f"Bearer {self._token}"
-            kwargs["headers"] = headers
+        
+        kwargs["headers"] = headers
 
         path = normalize_url(self.path, endpoint, trailing_slash = self._use_slash)
 

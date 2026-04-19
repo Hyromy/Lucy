@@ -10,7 +10,9 @@ from discord import (
 )
 
 from modules.Config import Config
-from modules.Events import Events
+from modules.Events.Events import Events, setup as setup_events
+from modules.Events.Gossiper import Gossiper, setup as setup_gossiper
+from modules.Events.Sync import Sync, setup as setup_sync
 from modules.General import General
 
 class TestModulesModule:
@@ -94,106 +96,299 @@ class TestModulesModule:
 
     class TestEvents:
         @pytest.mark.asyncio
-        async def test_sync_api_success(self, mock_lucy):
-            """ Test that the sync_api method successfully initializes the API client and assigns it to the Lucy instance when the API is available. """
+        async def test_on_ready_logs(self, mock_lucy):
+            """ Test that on_ready writes an informational log. """
+
+            cog = Events(mock_lucy)
+
+            with patch("modules.Events.Events.logger") as logger:
+                await cog.on_ready()
+                logger.info.assert_called_once_with("Events cog is ready. Listening for events.")
+
+        @pytest.mark.asyncio
+        async def test_on_guild_join_success(self, mock_lucy):
+            """ Test that on_guild_join calls API when available. """
+
+            cog = Events(mock_lucy)
+            guild = MagicMock()
+            guild.id = 123
+
+            mock_lucy.api.guild.new = AsyncMock()
+
+            await cog.on_guild_join(guild)
+
+            mock_lucy.api.guild.new.assert_awaited_once_with(123)
+
+        @pytest.mark.asyncio
+        async def test_on_guild_join_no_api(self, mock_lucy):
+            """ Test that on_guild_join exits when API is not available. """
 
             cog = Events(mock_lucy)
             mock_lucy.api = None
-            
-            with (
-                patch("modules.Events.getenv", return_value="http://api.test"),
-                patch("modules.Events.ApiServices") as mock_api_class
-            ):
-                
-                mock_api_instance = mock_api_class.return_value
-                mock_api_instance.ping = AsyncMock(return_value=10.5)
-                
-                await cog.sync_api()
-                
-                assert mock_lucy.api is not None
-                mock_api_instance.ping.assert_called_once()
+            guild = MagicMock()
+            guild.id = 123
+
+            await cog.on_guild_join(guild)
 
         @pytest.mark.asyncio
-        async def test_sync_api_fail(self, mock_lucy):
-            """ Test that the sync_api method handles failures properly by closing the session and setting the api instance to None if the initialization test fails. """
+        async def test_on_guild_join_error_logs(self, mock_lucy):
+            """ Test that on_guild_join logs failures. """
 
             cog = Events(mock_lucy)
-            mock_lucy.api = MagicMock()
-            
-            with (
-                patch("modules.Events.getenv", return_value="http://api.test"),
-                patch("modules.Events.ApiServices") as mock_api_class
-            ):
-                mock_api_instance = mock_api_class.return_value
-                mock_api_instance.ping = AsyncMock(return_value=-1)
-                mock_api_instance.close = AsyncMock()
-                
-                await cog.sync_api()
-                
-                assert mock_lucy.api is None
-                mock_api_instance.close.assert_called_once()
+            guild = MagicMock()
+            guild.id = 123
+            guild.name = "Guild"
+
+            mock_lucy.api.guild.new = AsyncMock(side_effect=Exception("boom"))
+
+            with patch("modules.Events.Events.logger") as logger:
+                await cog.on_guild_join(guild)
+                logger.error.assert_called_once()
 
         @pytest.mark.asyncio
-        async def test_sync_owner(self, mock_lucy):
-            """ Test that the sync_owner method retrieves the application info and updates the OWNER attribute of the Lucy instance with the correct owner information. """
+        async def test_on_guild_remove_success(self, mock_lucy):
+            """ Test that on_guild_remove calls API when available. """
 
             cog = Events(mock_lucy)
-            mock_lucy.application_info = AsyncMock()
-            mock_owner = MagicMock()
-            mock_owner.name = "RealOwner"
-            mock_lucy.application_info.return_value.owner = mock_owner
-            
-            await cog.sync_owner()
-            
-            assert mock_lucy.OWNER.name == "RealOwner"
+            guild = MagicMock()
+            guild.id = 321
+
+            mock_lucy.api.guild.delete = AsyncMock()
+
+            await cog.on_guild_remove(guild)
+
+            mock_lucy.api.guild.delete.assert_awaited_once_with(321)
 
         @pytest.mark.asyncio
-        async def test_sync_commands_dev(self, mock_lucy):
-            """ Test that the sync_commands method correctly attempts to sync commands to the testing guild when the bot is not in production mode. """
-
-            cog = Events(mock_lucy)
-            mock_lucy.CONFIG.PRODUCTION = False
-            mock_lucy.CONFIG.TESTING_GUILD_ID = 987
-            mock_lucy.tree.sync = AsyncMock()
-            mock_lucy.tree.copy_global_to = MagicMock()
-            
-            with patch("modules.Events.Object") as mock_obj:
-                await cog.sync_commands()
-                mock_obj.assert_called_with(987)
-                mock_lucy.tree.sync.assert_called_once()
-
-        @pytest.mark.asyncio
-        async def test_sync_tokens_no_api(self, mock_lucy):
-            """ Test that sync_tokens exits early when API is not initialized. """
+        async def test_on_guild_remove_no_api(self, mock_lucy):
+            """ Test that on_guild_remove exits when API is not available. """
 
             cog = Events(mock_lucy)
             mock_lucy.api = None
+            guild = MagicMock()
+            guild.id = 321
 
-            with patch("modules.Events.logger") as logger:
-                await cog.sync_tokens()
+            await cog.on_guild_remove(guild)
+
+        @pytest.mark.asyncio
+        async def test_on_guild_remove_error_logs(self, mock_lucy):
+            """ Test that on_guild_remove logs failures. """
+
+            cog = Events(mock_lucy)
+            guild = MagicMock()
+            guild.id = 321
+            guild.name = "Guild"
+
+            mock_lucy.api.guild.delete = AsyncMock(side_effect=Exception("boom"))
+
+            with patch("modules.Events.Events.logger") as logger:
+                await cog.on_guild_remove(guild)
+                logger.error.assert_called_once()
+
+        @pytest.mark.asyncio
+        async def test_setup_adds_cog(self, mock_lucy):
+            """ Test that setup registers the Events cog in Lucy. """
+
+            mock_lucy.add_cog = AsyncMock()
+
+            await setup_events(mock_lucy)
+
+            mock_lucy.add_cog.assert_awaited_once()
+            added_cog = mock_lucy.add_cog.await_args.args[0]
+            assert isinstance(added_cog, Events)
+
+    class TestGossiper:
+        @pytest.mark.asyncio
+        async def test_on_ready_starts_listener(self, mock_lucy):
+            """ Test that on_ready starts Redis listener and logs success. """
+
+            cog = Gossiper(mock_lucy)
+
+            with (
+                patch.object(cog, "start_redis_listener", new_callable = AsyncMock) as start_listener,
+                patch("modules.Events.Gossiper.logger") as logger,
+            ):
+                await cog.on_ready()
+                start_listener.assert_awaited_once()
+                logger.info.assert_called_once_with("Redis listener started successfully.")
+
+        @pytest.mark.asyncio
+        async def test_on_redis_message_dispatch_created(self, mock_lucy):
+            """ Test that supported created events are dispatched to the corresponding handler. """
+
+            cog = Gossiper(mock_lucy)
+            payload = {"id": "999", "lang": {"code": "es"}}
+
+            await cog.on_redis_message("lucy.guild.created", payload)
+
+            assert mock_lucy.cache["guilds"]["999"] == payload
+
+        @pytest.mark.asyncio
+        async def test_on_redis_message_unsupported_logs_warning(self, mock_lucy):
+            """ Test that unsupported Redis events are ignored with a warning. """
+
+            cog = Gossiper(mock_lucy)
+
+            with patch("modules.Events.Gossiper.logger") as logger:
+                await cog.on_redis_message("lucy.user.updated", {"id": "1"})
                 logger.warning.assert_called_once()
 
         @pytest.mark.asyncio
-        async def test_sync_tokens_success(self, mock_lucy):
-            """ Test that sync_tokens requests tokens from API with expected credentials. """
+        async def test_on_redis_message_unhandled_logs_warning(self, mock_lucy):
+            """ Test that events with no handler emit an unhandled warning. """
 
-            cog = Events(mock_lucy)
-            mock_lucy.api.tokens.get = AsyncMock()
+            cog = Gossiper(mock_lucy)
+            cog._supported_models.add("token")
+            cog._supported_events.add("rotated")
 
-            await cog.sync_tokens()
+            with patch("modules.Events.Gossiper.logger") as logger:
+                await cog.on_redis_message("lucy.token.rotated", {"id": "1"})
+                logger.warning.assert_called_once()
 
-            mock_lucy.api.tokens.get.assert_awaited_once_with("Lucy", "Lucy")
+        def test_on_redis_guild_deleted_removes_cache(self, mock_lucy):
+            """ Test that guild deletion events remove guild from cache if present. """
+
+            cog = Gossiper(mock_lucy)
+            mock_lucy.cache["guilds"]["321"] = {"id": "321"}
+
+            cog.on_redis_guild_deleted({"id": "321"})
+
+            assert "321" not in mock_lucy.cache["guilds"]
 
         @pytest.mark.asyncio
-        async def test_sync_tokens_error(self, mock_lucy):
-            """ Test that sync_tokens logs errors when token retrieval fails. """
+        async def test_setup_adds_cog(self, mock_lucy):
+            """ Test that setup registers the Gossiper cog in Lucy. """
 
-            cog = Events(mock_lucy)
-            mock_lucy.api.tokens.get = AsyncMock(side_effect = Exception("token error"))
+            mock_lucy.add_cog = AsyncMock()
 
-            with patch("modules.Events.logger") as logger:
-                await cog.sync_tokens()
-                logger.error.assert_called_once()
+            await setup_gossiper(mock_lucy)
+
+            mock_lucy.add_cog.assert_awaited_once()
+            added_cog = mock_lucy.add_cog.await_args.args[0]
+            assert isinstance(added_cog, Gossiper)
+
+    class TestSync:
+        @pytest.mark.asyncio
+        async def test_sync_api_success(self, mock_lucy):
+            """ Test that sync_api initializes API services when endpoint is available. """
+
+            cog = Sync(mock_lucy)
+
+            with (
+                patch("modules.Events.Sync.getenv", return_value = "http://api.test"),
+                patch("modules.Events.Sync.ApiServices") as api_services_cls,
+            ):
+                api_instance = api_services_cls.return_value
+                api_instance.ping = AsyncMock(return_value = 12.0)
+                api_instance._client.path = "http://api.test"
+
+                await cog.sync_api()
+
+                assert mock_lucy.api == api_instance
+                api_instance.ping.assert_awaited_once()
+
+        @pytest.mark.asyncio
+        async def test_sync_api_fail_sets_api_none(self, mock_lucy):
+            """ Test that sync_api closes client and resets api on ping failure. """
+
+            cog = Sync(mock_lucy)
+
+            with (
+                patch("modules.Events.Sync.getenv", return_value = "http://api.test"),
+                patch("modules.Events.Sync.ApiServices") as api_services_cls,
+            ):
+                api_instance = api_services_cls.return_value
+                api_instance.ping = AsyncMock(return_value = -1)
+                api_instance.close = AsyncMock()
+
+                await cog.sync_api()
+
+                assert mock_lucy.api is None
+                api_instance.close.assert_awaited_once()
+
+        @pytest.mark.asyncio
+        async def test_sync_commands_dev(self, mock_lucy):
+            """ Test that sync_commands targets testing guild in development mode. """
+
+            cog = Sync(mock_lucy)
+            mock_lucy.CONFIG.PRODUCTION = False
+            mock_lucy.CONFIG.TESTING_GUILD_ID = 123
+            mock_lucy.tree.copy_global_to = MagicMock()
+            mock_lucy.tree.sync = AsyncMock()
+
+            with patch("modules.Events.Sync.Object") as Object:
+                guild = Object.return_value
+
+                await cog.sync_commands()
+
+                mock_lucy.tree.copy_global_to.assert_called_once_with(guild = guild)
+                mock_lucy.tree.sync.assert_awaited_once_with(guild = guild)
+
+        @pytest.mark.asyncio
+        async def test_sync_owner_sets_owner(self, mock_lucy):
+            """ Test that sync_owner stores application owner on Lucy instance. """
+
+            cog = Sync(mock_lucy)
+            owner = MagicMock()
+            mock_lucy.application_info = AsyncMock(return_value = MagicMock(owner = owner))
+
+            await cog.sync_owner()
+
+            assert mock_lucy.OWNER == owner
+
+        @pytest.mark.asyncio
+        async def test_sync_slash_cmds_cache_dev(self, mock_lucy):
+            """ Test that sync_slash_cmds_cache updates cache and logs totals in dev mode. """
+
+            cog = Sync(mock_lucy)
+            mock_lucy.CONFIG.PRODUCTION = False
+            mock_lucy.CONFIG.TESTING_GUILD_ID = 123
+
+            cmd1 = MagicMock()
+            cmd1.name = "help"
+            cmd1.id = 1
+
+            cmd2 = MagicMock()
+            cmd2.name = "ping"
+            cmd2.id = 2
+
+            mock_lucy.tree.fetch_commands = AsyncMock(return_value = [cmd1, cmd2])
+
+            with (
+                patch("modules.Events.Sync.Object") as Object,
+                patch("modules.Events.Sync.count_commands_in_files", return_value = 3),
+                patch("modules.Events.Sync.logger") as logger,
+            ):
+                guild = Object.return_value
+
+                await cog.sync_slash_cmds_cache()
+
+                mock_lucy.tree.fetch_commands.assert_awaited_once_with(guild = guild)
+                assert mock_lucy.cache["slash_cmds"] == {"help": 1, "ping": 2}
+                logger.info.assert_called_once_with("Cached (2/3) commands.")
+
+        @pytest.mark.asyncio
+        async def test_sync_tokens_cache_no_api(self, mock_lucy):
+            """ Test that sync_tokens_cache warns and exits if API is not initialized. """
+
+            cog = Sync(mock_lucy)
+            mock_lucy.api = None
+
+            with patch("modules.Events.Sync.logger") as logger:
+                await cog.sync_tokens_cache()
+                logger.warning.assert_called_once_with("API not initialized. Cannot sync tokens.")
+
+        @pytest.mark.asyncio
+        async def test_setup_adds_cog(self, mock_lucy):
+            """ Test that setup registers the Sync cog in Lucy. """
+
+            mock_lucy.add_cog = AsyncMock()
+
+            await setup_sync(mock_lucy)
+
+            mock_lucy.add_cog.assert_awaited_once()
+            added_cog = mock_lucy.add_cog.await_args.args[0]
+            assert isinstance(added_cog, Sync)
 
     class TestGeneral:
         @pytest.mark.asyncio
