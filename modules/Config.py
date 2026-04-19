@@ -31,7 +31,7 @@ class Config(Cog):
     ):
         await interaction.response.defer()
         
-        pre_lang = self.lucy.cache["guilds"].get(str(interaction.guild.id))["lang"]["code"]
+        pre_lang = self.lucy.cache["guilds"][str(interaction.guild.id)]["lang"]["code"]
         try:
             response = await self.lucy.api.guild.update(interaction.guild.id, lang = language)
         except Exception as e:

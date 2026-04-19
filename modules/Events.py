@@ -3,6 +3,7 @@ from os import getenv
 from asyncio import sleep
 from discord import Object, Guild
 from discord.ext import commands
+from aiohttp import ClientResponseError
 
 from classes.Api import ApiServices
 from classes.Lucy import Lucy
@@ -17,9 +18,22 @@ class Events(commands.Cog):
         for guild in self.lucy.guilds:
             try:
                 await self.lucy.api.guild.new(guild.id)
+            except ClientResponseError as e:
+                if e.status in (400, 409):
+                    if not self.lucy.CONFIG.PRODUCTION:
+                        logger.info(f"Guild already exists in API: {guild.name} ({guild.id})")
+                    continue
+
+                logger.error(
+                    f"Error HTTP while refilling guild info for guild {guild.name} ({guild.id})",
+                    exc_info=e
+                )
+
             except Exception as e:
-                if not self.lucy.PRODUCTION:
-                    logger.error(f"Failed to refill guild info for guild ID {guild.name}", exc_info=e)
+                logger.error(
+                    f"Unexpected error while refilling guild info for guild {guild.name} ({guild.id})",
+                    exc_info=e
+                )
 
     async def __sync_guilds_data(self):
         try:
