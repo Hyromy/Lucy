@@ -71,7 +71,11 @@ class Gossiper(commands.Cog):
             return
 
         try:
-            self.lucy.loop.create_task(self.stop_redis_listener())
+            loop = getattr(self.lucy, "loop", None)
+            if loop is None or loop.is_closed():
+                return
+
+            loop.create_task(self.stop_redis_listener())
         except Exception as e:
             logger.error("Failed to schedule Redis listener shutdown", exc_info=e)
 

@@ -19,6 +19,7 @@ from classes.Api import (
     _ApiClient,
     _ApiInterface,
 
+    _Tokens,
     _Guild,
 
     ApiServices,
@@ -122,6 +123,19 @@ class TestApiModule:
 
             assert api._token == "access"
             assert api._refreshing_token == "refresh"
+            assert api._expire_at == 0
+
+        def test_set_tokens_with_none_does_not_decode(self):
+            """ Test that clearing tokens does not attempt JWT decode and resets expiration. """
+
+            api = _ApiClient("http://example.com")
+
+            with patch("classes.Api.jwt_decode") as decode_mock:
+                api.set_tokens(None, None)
+
+            decode_mock.assert_not_called()
+            assert api._token is None
+            assert api._refreshing_token is None
             assert api._expire_at == 0
 
         @pytest.mark.asyncio
@@ -292,6 +306,37 @@ class TestApiModule:
 
             api.refresh_handler.assert_awaited_once()
 
+        @pytest.mark.asyncio
+        async def test_handle_refresh_reauth_on_expired_refresh_token(self):
+            """ Test that _handle_refresh retries via callback when refresh token is expired/invalid. """
+
+            api = _ApiClient("http://example.com")
+            api.refresh_handler = AsyncMock(
+                side_effect = [
+                    ClientResponseError(None, None, status = 401),
+                    None,
+                ]
+            )
+
+            await api._handle_refresh()
+
+            assert api.refresh_handler.await_count == 2
+
+        @pytest.mark.asyncio
+        async def test_handle_refresh_raises_non_auth_client_response_error(self):
+            """ Test that _handle_refresh re-raises non-auth HTTP errors from refresh callback. """
+
+            api = _ApiClient("http://example.com")
+            api.refresh_handler = AsyncMock(
+                side_effect = ClientResponseError(None, None, status = 500)
+            )
+
+            with pytest.raises(ClientResponseError) as exc:
+                await api._handle_refresh()
+
+            assert exc.value.status == 500
+            api.refresh_handler.assert_awaited_once()
+
     class TestApiInterface:
         def test_instance(self):
             """ Test that an _ApiInterface subclass can be created correctly and has the expected properties and methods. """
@@ -327,6 +372,73 @@ class TestApiModule:
             assert guild is not None
             assert guild.endpoint == "api/guilds"
             assert guild.url == url + "api/guilds/"
+
+    class TestTokens:
+        def test_instance(self):
+            """ Test that a _Tokens instance is created with default endpoint. """
+
+            tokens = _Tokens(_ApiClient("http://example.com"))
+
+            assert tokens is not None
+            assert tokens.endpoint == "auth/token"
+
+        @pytest.mark.asyncio
+        async def test_get_calls_post_and_sets_tokens(self):
+            """ Test that get posts credentials and stores received tokens in client. """
+
+            client = _ApiClient("http://example.com")
+            client.post = AsyncMock(return_value = {
+                "access": "access-token",
+                "refresh": "refresh-token",
+            })
+            client.set_tokens = MagicMock()
+
+            tokens = _Tokens(client)
+
+            await tokens.get("lucy", "secret")
+
+            client.post.assert_awaited_once_with(
+                "auth/token",
+                json = {
+                    "username": "lucy",
+                    "password": "secret",
+                }
+            )
+            client.set_tokens.assert_called_once_with("access-token", "refresh-token")
+
+        @pytest.mark.asyncio
+        async def test_refresh_calls_refresh_endpoint(self):
+            """ Test that refresh posts current refresh token to refresh endpoint. """
+
+            client = _ApiClient("http://example.com")
+            client._use_slash = True
+            client._refreshing_token = "refresh-token"
+            client.post = AsyncMock(return_value = {
+                "access": "new-access",
+                "refresh": "new-refresh",
+            })
+            client.set_tokens = MagicMock()
+
+            tokens = _Tokens(client)
+
+            await tokens.refresh()
+
+            client.post.assert_awaited_once_with(
+                "auth/token/refresh/",
+                json = {"refresh": "refresh-token"}
+            )
+            client.set_tokens.assert_called_once_with("new-access", "new-refresh")
+
+        def test_set_tokens_with_incomplete_response(self):
+            """ Test that _set_tokens propagates missing fields as None without raising. """
+
+            client = _ApiClient("http://example.com")
+            client.set_tokens = MagicMock()
+
+            tokens = _Tokens(client)
+            tokens._set_tokens({"access": "only-access"})
+
+            client.set_tokens.assert_called_once_with("only-access", None)
 
     class TestApiServices:
         def test_instance(self):

@@ -3,6 +3,7 @@ from unittest.mock import (
     patch,
     MagicMock,
     AsyncMock,
+    PropertyMock,
 )
 
 from discord import (
@@ -255,6 +256,22 @@ class TestModulesModule:
 
             assert "321" not in mock_lucy.cache["guilds"]
 
+        def test_cog_unload_skips_when_loop_closed(self, mock_lucy):
+            """ Test that cog_unload exits quietly when event loop is already closed. """
+
+            cog = Gossiper(mock_lucy)
+
+            closed_loop = MagicMock()
+            closed_loop.is_closed.return_value = True
+            closed_loop.create_task = MagicMock()
+
+            mock_lucy.loop = closed_loop
+
+            with patch.object(type(cog._redis_bus), "is_running", new_callable = PropertyMock, return_value = True):
+                cog.cog_unload()
+
+            closed_loop.create_task.assert_not_called()
+
         @pytest.mark.asyncio
         async def test_setup_adds_cog(self, mock_lucy):
             """ Test that setup registers the Gossiper cog in Lucy. """
@@ -286,6 +303,7 @@ class TestModulesModule:
 
                 assert mock_lucy.api == api_instance
                 api_instance.ping.assert_awaited_once()
+                assert api_instance._client.refresh_handler == cog._handle_api_auth_failure
 
         @pytest.mark.asyncio
         async def test_sync_api_fail_sets_api_none(self, mock_lucy):
@@ -377,6 +395,33 @@ class TestModulesModule:
             with patch("modules.Events.Sync.logger") as logger:
                 await cog.sync_tokens_cache()
                 logger.warning.assert_called_once_with("API not initialized. Cannot sync tokens.")
+
+        @pytest.mark.asyncio
+        async def test_handle_api_auth_failure_triggers_full_reauth(self, mock_lucy):
+            """ Test that auth failure callback attempts full re-auth by calling sync_tokens_cache. """
+
+            cog = Sync(mock_lucy)
+            cog.sync_tokens_cache = AsyncMock()
+
+            with patch("modules.Events.Sync.logger") as logger:
+                await cog._handle_api_auth_failure()
+
+                cog.sync_tokens_cache.assert_awaited_once()
+                logger.warning.assert_called_once_with(
+                    "API tokens expired and refresh failed. Attempting full re-authentication..."
+                )
+
+        @pytest.mark.asyncio
+        async def test_handle_api_auth_failure_logs_critical_error(self, mock_lucy):
+            """ Test that auth failure callback logs when re-auth attempt fails. """
+
+            cog = Sync(mock_lucy)
+            cog.sync_tokens_cache = AsyncMock(side_effect = Exception("boom"))
+
+            with patch("modules.Events.Sync.logger") as logger:
+                await cog._handle_api_auth_failure()
+
+                logger.error.assert_called_once()
 
         @pytest.mark.asyncio
         async def test_setup_adds_cog(self, mock_lucy):

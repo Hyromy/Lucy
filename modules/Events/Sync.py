@@ -62,6 +62,7 @@ class Sync(commands.Cog):
 
             else:
                 logger.info(f"API initialized successfully with endpoint {self.lucy.api._client.path}")
+                self.lucy.api._client.refresh_handler = self._handle_api_auth_failure
         else:
             not_available_msg()
 
@@ -134,6 +135,15 @@ class Sync(commands.Cog):
         
         else:
             logger.info("Tokens synced successfully.")
+
+    async def _handle_api_auth_failure(self):
+        """ Callback for ApiServices when tokens expire and refresh fails. """
+        
+        logger.warning("API tokens expired and refresh failed. Attempting full re-authentication...")
+        try:
+            await self.sync_tokens_cache()
+        except Exception as e:
+            logger.error("Critical failure during API re-authentication", exc_info=e)
 
     async def _refill_guild_info(self):
         for guild in self.lucy.guilds:

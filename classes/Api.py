@@ -89,6 +89,10 @@ class _ApiClient:
         self._token = access_token
         self._refreshing_token = refresh_token
 
+        if not access_token:
+            self._expire_at = 0
+            return
+
         try:
             payload = jwt_decode(access_token, options={"verify_signature": False})
             self._expire_at = payload.get("exp", 0)
@@ -98,9 +102,19 @@ class _ApiClient:
             self._expire_at = 0
 
     async def refresh_handler(self):
-        """ This method is assigned from _Tokens.refresh """
+        """ This method is assigned from ApiServices initialization to handle token refresh/re-auth """
 
         pass
+
+    async def _handle_refresh(self):
+        try:
+            await self.refresh_handler()
+        except ClientResponseError as e:
+            if e.status in (400, 401, 403):
+                logger.warning("Refresh token expired or invalid, attempting full re-authentication callback")
+                await self.refresh_handler()
+            else:
+                raise e
 
     @retry(
         stop = stop_after_attempt(RETRY_ATTEMPTS + 1),
@@ -119,7 +133,7 @@ class _ApiClient:
             now = datetime.now(timezone.utc).timestamp()
             if self._expire_at - now < 30:
                 async with self._refresh_lock:
-                    await self.refresh_handler()
+                    await self._handle_refresh()
 
             headers["Authorization"] = f"Bearer {self._token}"
         
