@@ -19,6 +19,7 @@ from classes.Api import (
     _ApiClient,
     _ApiInterface,
 
+    _Tokens,
     _Guild,
 
     ApiServices,
@@ -29,6 +30,9 @@ from classes.Config import (
 )
 from classes.Lucy import(
     Lucy,
+)
+from classes.RedisEventBus import (
+    RedisEventBus,
 )
 
 class TestApiModule:
@@ -96,6 +100,43 @@ class TestApiModule:
                 ClientResponseError(None, None, status = 400)
             )
             assert not _ApiClient._is_retryable(ValueError())
+
+        def test_set_tokens_sets_values(self):
+            """ Test that set_tokens stores tokens and expiration timestamp from JWT payload. """
+
+            api = _ApiClient("http://example.com")
+
+            with patch("classes.Api.jwt_decode", return_value = {"exp": 1234567890}):
+                api.set_tokens("access", "refresh")
+
+            assert api._token == "access"
+            assert api._refreshing_token == "refresh"
+            assert api._expire_at == 1234567890
+
+        def test_set_tokens_on_decode_error(self):
+            """ Test that set_tokens falls back to exp=0 when token decoding fails. """
+
+            api = _ApiClient("http://example.com")
+
+            with patch("classes.Api.jwt_decode", side_effect = Exception("invalid token")):
+                api.set_tokens("access", "refresh")
+
+            assert api._token == "access"
+            assert api._refreshing_token == "refresh"
+            assert api._expire_at == 0
+
+        def test_set_tokens_with_none_does_not_decode(self):
+            """ Test that clearing tokens does not attempt JWT decode and resets expiration. """
+
+            api = _ApiClient("http://example.com")
+
+            with patch("classes.Api.jwt_decode") as decode_mock:
+                api.set_tokens(None, None)
+
+            decode_mock.assert_not_called()
+            assert api._token is None
+            assert api._refreshing_token is None
+            assert api._expire_at == 0
 
         @pytest.mark.asyncio
         async def test_retry(self):
@@ -214,6 +255,88 @@ class TestApiModule:
             _, kwargs = session.request.call_args
             assert kwargs["timeout"] == api._timeout
 
+        @pytest.mark.asyncio
+        async def test_request_adds_auth_header(self):
+            """ Test that authenticated requests include a Bearer Authorization header. """
+
+            session = MagicMock()
+            session.closed = False
+
+            response = MagicMock()
+            response.raise_for_status.return_value = None
+            response.json = AsyncMock(return_value = {"ok": True})
+
+            context_manager = MagicMock()
+            context_manager.__aenter__ = AsyncMock(return_value = response)
+            context_manager.__aexit__ = AsyncMock(return_value = None)
+            session.request.return_value = context_manager
+
+            api = _ApiClient("http://example.com", session = session)
+            api._token = "abc123"
+            api._expire_at = 9999999999
+
+            result = await api.get("guild")
+
+            assert result == {"ok": True}
+            _, kwargs = session.request.call_args
+            assert kwargs["headers"]["Authorization"] == "Bearer abc123"
+
+        @pytest.mark.asyncio
+        async def test_request_refreshes_token_when_expiring(self):
+            """ Test that refresh_handler is awaited when access token is close to expiration. """
+
+            session = MagicMock()
+            session.closed = False
+
+            response = MagicMock()
+            response.raise_for_status.return_value = None
+            response.json = AsyncMock(return_value = {"ok": True})
+
+            context_manager = MagicMock()
+            context_manager.__aenter__ = AsyncMock(return_value = response)
+            context_manager.__aexit__ = AsyncMock(return_value = None)
+            session.request.return_value = context_manager
+
+            api = _ApiClient("http://example.com", session = session)
+            api._token = "abc123"
+            api._expire_at = 0
+            api.refresh_handler = AsyncMock()
+
+            await api.get("guild")
+
+            api.refresh_handler.assert_awaited_once()
+
+        @pytest.mark.asyncio
+        async def test_handle_refresh_reauth_on_expired_refresh_token(self):
+            """ Test that _handle_refresh retries via callback when refresh token is expired/invalid. """
+
+            api = _ApiClient("http://example.com")
+            api.refresh_handler = AsyncMock(
+                side_effect = [
+                    ClientResponseError(None, None, status = 401),
+                    None,
+                ]
+            )
+
+            await api._handle_refresh()
+
+            assert api.refresh_handler.await_count == 2
+
+        @pytest.mark.asyncio
+        async def test_handle_refresh_raises_non_auth_client_response_error(self):
+            """ Test that _handle_refresh re-raises non-auth HTTP errors from refresh callback. """
+
+            api = _ApiClient("http://example.com")
+            api.refresh_handler = AsyncMock(
+                side_effect = ClientResponseError(None, None, status = 500)
+            )
+
+            with pytest.raises(ClientResponseError) as exc:
+                await api._handle_refresh()
+
+            assert exc.value.status == 500
+            api.refresh_handler.assert_awaited_once()
+
     class TestApiInterface:
         def test_instance(self):
             """ Test that an _ApiInterface subclass can be created correctly and has the expected properties and methods. """
@@ -247,8 +370,75 @@ class TestApiModule:
             guild = _Guild(_ApiClient(url))
 
             assert guild is not None
-            assert guild.endpoint == "guild"
-            assert guild.url == url + "guild/"
+            assert guild.endpoint == "api/guilds"
+            assert guild.url == url + "api/guilds/"
+
+    class TestTokens:
+        def test_instance(self):
+            """ Test that a _Tokens instance is created with default endpoint. """
+
+            tokens = _Tokens(_ApiClient("http://example.com"))
+
+            assert tokens is not None
+            assert tokens.endpoint == "auth/token"
+
+        @pytest.mark.asyncio
+        async def test_get_calls_post_and_sets_tokens(self):
+            """ Test that get posts credentials and stores received tokens in client. """
+
+            client = _ApiClient("http://example.com")
+            client.post = AsyncMock(return_value = {
+                "access": "access-token",
+                "refresh": "refresh-token",
+            })
+            client.set_tokens = MagicMock()
+
+            tokens = _Tokens(client)
+
+            await tokens.get("lucy", "secret")
+
+            client.post.assert_awaited_once_with(
+                "auth/token",
+                json = {
+                    "username": "lucy",
+                    "password": "secret",
+                }
+            )
+            client.set_tokens.assert_called_once_with("access-token", "refresh-token")
+
+        @pytest.mark.asyncio
+        async def test_refresh_calls_refresh_endpoint(self):
+            """ Test that refresh posts current refresh token to refresh endpoint. """
+
+            client = _ApiClient("http://example.com")
+            client._use_slash = True
+            client._refreshing_token = "refresh-token"
+            client.post = AsyncMock(return_value = {
+                "access": "new-access",
+                "refresh": "new-refresh",
+            })
+            client.set_tokens = MagicMock()
+
+            tokens = _Tokens(client)
+
+            await tokens.refresh()
+
+            client.post.assert_awaited_once_with(
+                "auth/token/refresh/",
+                json = {"refresh": "refresh-token"}
+            )
+            client.set_tokens.assert_called_once_with("new-access", "new-refresh")
+
+        def test_set_tokens_with_incomplete_response(self):
+            """ Test that _set_tokens propagates missing fields as None without raising. """
+
+            client = _ApiClient("http://example.com")
+            client.set_tokens = MagicMock()
+
+            tokens = _Tokens(client)
+            tokens._set_tokens({"access": "only-access"})
+
+            client.set_tokens.assert_called_once_with("only-access", None)
 
     class TestApiServices:
         def test_instance(self):
@@ -287,19 +477,19 @@ class TestApiModule:
             context_manager.__aenter__ = AsyncMock(return_value = response)
             context_manager.__aexit__ = AsyncMock(return_value = None)
 
-            session.head.return_value = context_manager
+            session.get.return_value = context_manager
 
             latency = await api_services.ping()
             assert latency >= 0
-            session.head.assert_called_once_with(url)
+            session.get.assert_called_once_with(f"{url}api/health/")
 
             # Test ping with connection error
-            session.head.reset_mock()
-            session.head.side_effect = ClientConnectionError()
+            session.get.reset_mock()
+            session.get.side_effect = ClientConnectionError()
 
             latency = await api_services.ping()
             assert latency == -1.0
-            session.head.assert_called_once_with(url)
+            session.get.assert_called_once_with(f"{url}api/health/")
 
         @pytest.mark.asyncio
         async def test_close(self):
@@ -380,28 +570,22 @@ class TestLucyModule:
             lucy = Lucy(config=MagicMock())
 
             with (
-                patch("classes.Lucy.listdir") as listdir,
+                patch("classes.Lucy.os.walk") as walk,
                 patch("classes.Lucy.logger"),
                 patch.object(lucy, "load_extension", new_callable=AsyncMock) as load_extension,
             ):
-                listdir.return_value = [
-                    "MyCog.py",
-                    "anotherCog.py",
-                    "__init__.py",
-                    "notACog.txt",
-                    "MayBeACog.txt",
-                    "_Cog.py",
-                    "1Invalid.py",
-                    "Valid_Cog.py",
+                walk.return_value = [
+                    ("modules", [], ["MyCog.py", "anotherCog.py", "__init__.py", "notACog.txt"]),
+                    ("cogs", [], ["MayBeACog.txt", "_Cog.py", "1Invalid.py", "Valid_Cog.py"]),
+                    ("modules/Events", [], ["Events.py"]),
                 ]
                 load_extension.return_value = None
 
                 await lucy._load_cogs("cogs")
 
-                listdir.assert_called_once_with("cogs")
-                load_extension.assert_any_await("cogs.MyCog")
+                walk.assert_called_once_with("cogs")
                 load_extension.assert_any_await("cogs.Valid_Cog")
-                assert load_extension.await_count == 2
+                assert load_extension.await_count == 3
 
         @pytest.mark.asyncio
         async def test_load_cogs_on_err(self):
@@ -410,16 +594,19 @@ class TestLucyModule:
             lucy = Lucy(config=MagicMock())
 
             with (
-                patch("classes.Lucy.listdir") as listdir,
+                patch("classes.Lucy.os.walk") as walk,
                 patch("classes.Lucy.logger") as logger,
                 patch.object(lucy, "load_extension", new_callable = AsyncMock) as load_extension,
             ):
-                listdir.return_value = ["InvalidCog.py"]
+                walk.return_value = [
+                    ("cogs", [], ["InvalidCog.py"])
+                ]
+
                 load_extension.side_effect = Exception("Failed to load cog")
 
                 await lucy._load_cogs("cogs")
 
-                listdir.assert_called_once_with("cogs")
+                walk.assert_called_once_with("cogs")
                 load_extension.assert_awaited_once_with("cogs.InvalidCog")
                 logger.error.assert_called_once()
                 assert len(lucy.cogs) == 0
@@ -482,3 +669,174 @@ class TestLucyModule:
                 await lucy.close()
                 mock_super_close.assert_awaited_once()
                 lucy.api.close.assert_awaited_once()
+
+
+class TestRedisEventBusModule:
+    class TestRedisEventBus:
+        @pytest.mark.asyncio
+        async def test_start_without_redis_url(self):
+            """ Test that start returns False and logs warning if REDIS_URL is missing. """
+
+            with (
+                patch("classes.RedisEventBus.getenv", return_value = None),
+                patch("classes.RedisEventBus.logger") as logger,
+            ):
+                bus = RedisEventBus()
+                result = await bus.start(on_event = AsyncMock())
+
+                assert result is False
+                logger.warning.assert_called_once_with("REDIS_URL not found in env; Redis event listener disabled.")
+
+        @pytest.mark.asyncio
+        async def test_start_when_already_running(self):
+            """ Test that start exits early when listener task already exists. """
+
+            bus = RedisEventBus(redis_url = "redis://localhost:6379")
+            bus._task = object()
+
+            with patch("classes.RedisEventBus.redis.from_url") as from_url:
+                result = await bus.start(on_event = AsyncMock())
+
+                assert result is True
+                from_url.assert_not_called()
+
+        @pytest.mark.asyncio
+        async def test_start_success(self):
+            """ Test that start initializes redis pubsub, subscribes and creates listener task. """
+
+            bus = RedisEventBus(redis_url = "redis://localhost:6379")
+
+            redis_client = MagicMock()
+            pubsub = MagicMock()
+            pubsub.psubscribe = AsyncMock()
+            redis_client.pubsub.return_value = pubsub
+
+            fake_task = object()
+
+            def _create_task(coro):
+                coro.close()
+                return fake_task
+
+            with (
+                patch("classes.RedisEventBus.redis.from_url", return_value = redis_client),
+                patch("classes.RedisEventBus.create_task", side_effect = _create_task),
+            ):
+                result = await bus.start(on_event = AsyncMock())
+
+                assert result is True
+                pubsub.psubscribe.assert_awaited_once_with("lucy.*")
+                assert bus._task is fake_task
+
+        @pytest.mark.asyncio
+        async def test_stop_cancels_task_and_closes_clients(self):
+            """ Test that stop cancels running task and closes clients. """
+
+            bus = RedisEventBus(redis_url = "redis://localhost:6379")
+
+            loop = __import__("asyncio").get_running_loop()
+            task = loop.create_future()
+            task.set_result(None)
+            bus._task = task
+
+            bus._close_clients = AsyncMock()
+
+            await bus.stop()
+
+            assert bus._task is None
+            bus._close_clients.assert_awaited_once()
+
+        @pytest.mark.asyncio
+        async def test_close_clients(self):
+            """ Test that _close_clients closes pubsub and redis client and clears references. """
+
+            bus = RedisEventBus(redis_url = "redis://localhost:6379")
+            bus._pubsub = MagicMock()
+            bus._pubsub.close = AsyncMock()
+            bus._redis = MagicMock()
+            bus._redis.aclose = AsyncMock()
+
+            pubsub = bus._pubsub
+            redis_client = bus._redis
+
+            await bus._close_clients()
+
+            pubsub.close.assert_awaited_once()
+            redis_client.aclose.assert_awaited_once()
+            assert bus._pubsub is None
+            assert bus._redis is None
+
+        @pytest.mark.asyncio
+        async def test_listener_loop_dispatches_valid_event(self):
+            """ Test that _listener_loop decodes and dispatches valid pmessage payloads. """
+
+            bus = RedisEventBus(redis_url = "redis://localhost:6379")
+
+            async def _messages():
+                yield {
+                    "type": "pmessage",
+                    "channel": b"lucy.guild.updated",
+                    "data": b'{"id":"1","event":"lucy.guild.updated"}',
+                }
+
+            pubsub = MagicMock()
+            pubsub.listen = _messages
+            bus._pubsub = pubsub
+
+            on_event = AsyncMock()
+
+            await bus._listener_loop(on_event = on_event)
+
+            on_event.assert_awaited_once_with(
+                "lucy.guild.updated",
+                {"id": "1", "event": "lucy.guild.updated"},
+            )
+
+        @pytest.mark.asyncio
+        async def test_listener_loop_invalid_json(self):
+            """ Test that _listener_loop ignores invalid JSON payloads. """
+
+            bus = RedisEventBus(redis_url = "redis://localhost:6379")
+
+            async def _messages():
+                yield {
+                    "type": "pmessage",
+                    "channel": "lucy.guild.updated",
+                    "data": "not-json",
+                }
+
+            pubsub = MagicMock()
+            pubsub.listen = _messages
+            bus._pubsub = pubsub
+
+            on_event = AsyncMock()
+
+            with patch("classes.RedisEventBus.logger") as logger:
+                await bus._listener_loop(on_event = on_event)
+                logger.warning.assert_called_once()
+
+            on_event.assert_not_awaited()
+
+        @pytest.mark.asyncio
+        async def test_listener_loop_json_not_object(self):
+            """ Test that _listener_loop ignores JSON payloads that are not objects. """
+
+            bus = RedisEventBus(redis_url = "redis://localhost:6379")
+
+            async def _messages():
+                yield {
+                    "type": "pmessage",
+                    "channel": "lucy.guild.updated",
+                    "data": "[1, 2, 3]",
+                }
+
+            pubsub = MagicMock()
+            pubsub.listen = _messages
+            bus._pubsub = pubsub
+
+            on_event = AsyncMock()
+
+            with patch("classes.RedisEventBus.logger") as logger:
+                await bus._listener_loop(on_event = on_event)
+                logger.warning.assert_called_once()
+
+            on_event.assert_not_awaited()

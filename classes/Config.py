@@ -16,6 +16,8 @@ class Config:
         self.PREFIX = prefix
         self.PRODUCTION = os.getenv("PRODUCTION", "False") == "True"
         self.API_REST = os.getenv("API_REST", "http://localhost:8000/")
+        self.API_REST_USERNAME = os.getenv("API_REST_USERNAME")
+        self.API_REST_PASSWORD = os.getenv("API_REST_PASSWORD")
         self.RELEASES_URL = os.getenv("RELEASES_URL")
         self.GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
         self.PREFIX = prefix

@@ -1,7 +1,13 @@
 import os
 import ast
 
+from re import match as re_match
 from urllib.parse import urljoin
+
+def is_valid_cog_filename(filename: str) -> bool:
+    """ Checks if a filename is a valid cog file based on its naming convention. """
+
+    return filename.endswith(".py") and re_match(r"^[A-Z][a-zA-Z0-9_]*\.py$", filename) is not None
 
 def normalize_url(base_url: str, endpoint: str, *,
     trailing_slash: bool = True
@@ -83,34 +89,32 @@ def get_bot_info(lucy) -> dict:
         "slash_cmds_cache": lucy.cache.get('slash_cmds', {})
     }
 
-def count_commands_in_files(directory: str = "modules") -> dict:
-    """  Counts the number of app commands in each Python file within the specified directory. This is used to track command counts for caching purposes. """
-    command_stats = {}
+def count_commands_in_files(directory: str = "modules") -> int:
+    """  Counts the total number of app commands across all relevant Python files. """
+    
+    total_count = 0
 
-    for filename in os.listdir(directory):
-        if filename.endswith(".py") and not filename.startswith("__"):
-            path = os.path.join(directory, filename)
-            cog_name = filename[:-3]
-            count = 0
-
-            with open(path, "r", encoding="utf-8") as f:
-                try:
-                    node = ast.parse(f.read())
-                    for n in ast.walk(node):
-                        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                            for decorator in n.decorator_list:
-                                if isinstance(decorator, ast.Call):
-                                    func = decorator.func
-                                else:
-                                    func = decorator
-
-                                if hasattr(func, 'value') and isinstance(func.value, ast.Name):
-                                    if func.value.id == 'app_commands':
-                                        count += 1
+    for root, _, files in os.walk(directory):
+        for filename in files:
+            if is_valid_cog_filename(filename):
+                path = os.path.join(root, filename)
+                
+                with open(path, "r", encoding="utf-8") as f:
+                    try:
+                        node = ast.parse(f.read())
+                        for n in ast.walk(node):
+                            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                                for decorator in n.decorator_list:
+                                    dec_name = ""
+                                    if hasattr(decorator, "func") and hasattr(decorator.func, "attr"):
+                                        dec_name = decorator.func.attr
+                                    elif hasattr(decorator, "attr"):
+                                        dec_name = decorator.attr
+                                    
+                                    if dec_name == "command":
+                                        total_count += 1
                                         break
-                except SyntaxError:
-                    continue
+                    except SyntaxError:
+                        continue
 
-            command_stats[cog_name] = count
-
-    return command_stats
+    return total_count

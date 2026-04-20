@@ -28,7 +28,7 @@ class General(Cog):
 
     @app_commands.command(name = "ping", description = "Check the bot's latency.")
     async def ping(self, interaction: Interaction):
-        lang = "en"
+        lang = self.lucy.cache["guilds"][str(interaction.guild.id)]["lang"]["code"]
 
         api_latency = "Offline"
         latency = await self.lucy.api.ping() if self.lucy.api else -1
@@ -50,9 +50,7 @@ class General(Cog):
     async def help(self, interaction: Interaction, category: Optional[str] = None):
         await interaction.response.defer()
         
-        lang = "en"
-        """ if self.lucy.api:
-            lang = (await self.lucy.api.guild.get(interaction.guild_id))["lang"] """
+        lang = self.lucy.cache["guilds"][str(interaction.guild.id)]["lang"]["code"]
 
         cogs_dict = get_cogs_dict(self.lucy)
         bot_info = get_bot_info(self.lucy)

@@ -23,12 +23,16 @@ jobs:
             echo "${{ secrets.DOCKER_TOKEN }}" | \
               docker login -u "${{ vars.DOCKER_USER }}" --password-stdin
 
-            docker stop ${{ vars.DOCKER_CONTAINER }} || true
-            docker rm ${{ vars.DOCKER_CONTAINER }} || true
+            docker stop ${{ vars.DOCKER_IMAGE }}-app || true
+            docker rm ${{ vars.DOCKER_IMAGE }}-app || true
             docker pull ${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE }}:${{ inputs.image_tag }}
-            docker run -d --name '${{ vars.DOCKER_CONTAINER }}' \
+            docker run -d --name '${{ vars.DOCKER_IMAGE }}-app' \
               -e 'PRODUCTION=True' \
               -e 'DISCORD_BOT_TOKEN=${{ secrets.DISCORD_BOT_TOKEN }}' \
               -e 'API_REST=${{ vars.API_REST }}' \
+              -e 'API_REST_USERNAME=${{ secrets.API_REST_USERNAME }}' \
+              -e 'API_REST_PASSWORD=${{ secrets.API_REST_PASSWORD }}' \
               -e 'RELEASES_URL=${{ vars.RELEASES_URL }}' \
+              -e 'REDIS_URL=${{ vars.REDIS_URL }}' \
+              -e 'REDIS_EVENT_PATTERN=${{ vars.REDIS_EVENT_PATTERN }}' \
               '${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE }}:${{ inputs.image_tag }}'

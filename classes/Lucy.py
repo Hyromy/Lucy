@@ -1,5 +1,4 @@
-from os import listdir
-from re import match as re_match
+import os
 from discord import (
     Intents,
     Interaction,
@@ -9,6 +8,7 @@ from discord.ext.commands import Bot
 from classes.Api import ApiServices
 from classes.Config import Config
 from utils.logger import logger
+from utils.funcs import is_valid_cog_filename
 
 class Lucy(Bot):
     def __init__(self, intents: Intents = Intents.default(), *,
@@ -20,7 +20,11 @@ class Lucy(Bot):
     ):
         self.CONFIG = config
         self.api = apiServices
-        self.cache = cache or {}
+        self.cache = cache or {
+            "tokens": {},
+            "slash_cmds": {},
+            "guilds": {},
+        }
 
         super().__init__(
             command_prefix = config.PREFIX,
@@ -31,6 +35,8 @@ class Lucy(Bot):
     async def setup(self):
         self.remove_command("help")
         await self._load_cogs()
+
+        logger.info("Setup complete.")
 
     async def start(self, token: str):
         await super().start(token)
@@ -59,19 +65,25 @@ class Lucy(Bot):
     async def _load_cogs(self, dir: str = "modules"):
         loaded = 0
         failed = 0
-        files = [i[:-3] for i in listdir(dir) if re_match(r"^(?!__)[A-Z][a-zA-Z0-9_]*\.py$", i)]
-        len_files = len(files)
-        logger.info(f"Loading {len_files} cogs from {dir}")
-        for filename in files:
+        all_extension_paths = []
+
+        for root, _, files in os.walk(dir):
+            for filename in files:
+                if is_valid_cog_filename(filename):
+                    relative_path = os.path.relpath(os.path.join(root, filename[:-3]), os.getcwd())
+                    extension_path = relative_path.replace(os.sep, ".")
+                    all_extension_paths.append(extension_path)
+
+        len_files = len(all_extension_paths)
+        logger.info(f"Loading {len_files} cogs from {dir} (recursively)")
+
+        for extension in all_extension_paths:
             try:
-                await self.load_extension(f"{dir}.{filename}")
-            
-            except Exception as e:
-                logger.error(f"Failed to load cog {filename}: {e}", exc_info=e)
-                failed += 1
-            
-            else:
-                logger.info(f"Successfully loaded cog {filename}")
+                await self.load_extension(extension)
+                logger.info(f"Successfully loaded extension {extension}")
                 loaded += 1
+            except Exception as e:
+                logger.error(f"Failed to load extension {extension}: {e}", exc_info=e)
+                failed += 1
         
         logger.info(f"Cogs loaded. (t{len_files}/ l{loaded}/ f{failed}).")
