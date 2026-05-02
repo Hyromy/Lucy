@@ -24,6 +24,14 @@
                                     "Usa el menú desplegable o escribe",
                                     "para más información"
                                 ]
+                            },
+                            {
+                                "name": "Ayuda adicional",
+                                "value": [
+                                    "Visita el",
+                                    "sitio web",
+                                    "para más información y características."
+                                ]
                             }
                         ]
                     },

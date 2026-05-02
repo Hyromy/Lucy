@@ -13,6 +13,7 @@ from components.elements import (
     BaseSelect
 )
 from lang import l
+from os import getenv
 
 def footer_embed(embed: Embed, owner_name: str, owner_avatar_url: str, bot_name: str, version: str, lang: str = "en"):
     embed.set_footer(
@@ -69,6 +70,11 @@ def general_help_embed(
         name = l.t(lang, lang_data.field._0.name),
         value = f"{l.t(lang, lang_data.field._0.value._0)} </help:{slash_help_id}> `{random_cog['name']} {random_cmd_name}` {l.t(lang, lang_data.field._0.value._1)}",
         inline = False
+    )
+    embed.add_field(
+        name = l.t(lang, lang_data.field._1.name),
+        value = f"{l.t(lang, lang_data.field._1.value._0)} [{l.t(lang, lang_data.field._1.value._1)}]({getenv('FRONTEND_URL')}) {l.t(lang, lang_data.field._1.value._2)}",
+        inline = False,
     )
     footer_embed(embed, owner_name, owner_avatar_url, bot_name, version, lang)
     return embed
@@ -145,7 +151,6 @@ class GeneralHelpView(BaseView):
             self._add_back_button()
 
     def _add_back_button(self):
-        """ Ayudante interno para añadir el botón de retroceso si no existe. """
         if not any(isinstance(child, BaseButton) and getattr(child, "is_back", False) for child in self.children):
             back_btn = BaseButton(
                 l.t(self.lang, l.k.cmds.general.help.category.view.button.label),
