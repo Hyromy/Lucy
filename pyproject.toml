@@ -1,6 +1,6 @@
 [project]
 name = "lucy"
-version = "0.2.1"
+version = "0.3.1"
 description = "discord bot"
 authors = [
     {name = "Hyromy",email = "formulajoel9@gmail.com"}

@@ -1,4 +1,3 @@
-from aiohttp import ClientResponseError
 from asyncio import sleep
 from os import getenv
 
@@ -146,26 +145,14 @@ class Sync(commands.Cog):
             logger.error("Critical failure during API re-authentication", exc_info=e)
 
     async def _refill_guild_info(self):
+        api_guilds_id = {str(guild["id"]) for guild in (await self.lucy.api.guild.get())}
         for guild in self.lucy.guilds:
-            try:
-                await self.lucy.api.guild.new(guild.id)
-            except ClientResponseError as e:
-                if e.status in (400, 409):
-                    if not self.lucy.CONFIG.PRODUCTION:
-                        logger.info(f"Guild already exists in API: {guild.name} ({guild.id})")
-                    continue
-
-                logger.error(
-                    f"Error HTTP while refilling guild info for guild {guild.name} ({guild.id})",
-                    exc_info=e
-                )
-
-            except Exception as e:
-                logger.error(
-                    f"Unexpected error while refilling guild info for guild {guild.name} ({guild.id})",
-                    exc_info=e
-                )
-
+            if str(guild.id) not in api_guilds_id:
+                try:
+                    await self.lucy.api.guild.new(guild.id)
+                except Exception as e:
+                    logger.error(f"Failed to add guild info for guild {guild.name}, ID: {guild.id}", exc_info=e)
+        
     async def _sync_guilds_data(self):
         try:
             guilds = await self.lucy.api.guild.get()

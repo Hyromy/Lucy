@@ -840,3 +840,27 @@ class TestRedisEventBusModule:
                 logger.warning.assert_called_once()
 
             on_event.assert_not_awaited()
+
+        @pytest.mark.asyncio
+        async def test_request_handles_204_no_content(self):
+            """ Test that _request returns None for 204 No Content responses without attempting JSON parsing. """
+
+            session = MagicMock()
+            session.closed = False
+
+            response = MagicMock()
+            response.status = 204
+            response.raise_for_status.return_value = None
+
+            context_manager = MagicMock()
+            context_manager.__aenter__ = AsyncMock(return_value = response)
+            context_manager.__aexit__ = AsyncMock(return_value = None)
+            session.request.return_value = context_manager
+
+            api = _ApiClient("http://example.com", session = session)
+
+            result = await api.delete("test")
+
+            assert result is None
+            response.raise_for_status.assert_not_called()
+            response.json.assert_not_called()

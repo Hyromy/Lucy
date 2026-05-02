@@ -424,6 +424,77 @@ class TestModulesModule:
                 logger.error.assert_called_once()
 
         @pytest.mark.asyncio
+        async def test_refill_guild_info_adds_missing_guilds(self, mock_lucy):
+            """ Test that _refill_guild_info adds only guilds missing from the API cache. """
+
+            cog = Sync(mock_lucy)
+
+            # Mock guilds in discord: 1, 2
+            guild1 = MagicMock()
+            guild1.id = 1
+            guild1.name = "Guild One"
+
+            guild2 = MagicMock()
+            guild2.id = 2
+            guild2.name = "Guild Two"
+
+            mock_lucy.guilds = [guild1, guild2]
+
+            # API initially knows only guild 1
+            mock_lucy.api.guild.get = AsyncMock(return_value = [{"id": "1"}])
+            mock_lucy.api.guild.new = AsyncMock()
+
+            await cog._refill_guild_info()
+
+            # Verify that new was called only for guild 2
+            mock_lucy.api.guild.new.assert_awaited_once_with(2)
+
+        @pytest.mark.asyncio
+        async def test_refill_guild_info_no_duplicates(self, mock_lucy):
+            """ Test that _refill_guild_info does not attempt to add guilds already in the API. """
+
+            cog = Sync(mock_lucy)
+
+            guild1 = MagicMock()
+            guild1.id = 1
+            guild1.name = "Guild One"
+
+            mock_lucy.guilds = [guild1]
+
+            # API already has guild 1
+            mock_lucy.api.guild.get = AsyncMock(return_value = [{"id": "1"}])
+            mock_lucy.api.guild.new = AsyncMock()
+
+            await cog._refill_guild_info()
+
+            # Verify that new was not called
+            mock_lucy.api.guild.new.assert_not_awaited()
+
+        @pytest.mark.asyncio
+        async def test_refill_guild_info_handles_errors(self, mock_lucy):
+            """ Test that _refill_guild_info logs errors when adding a guild fails. """
+
+            cog = Sync(mock_lucy)
+
+            guild1 = MagicMock()
+            guild1.id = 1
+            guild1.name = "Guild One"
+
+            guild2 = MagicMock()
+            guild2.id = 2
+            guild2.name = "Guild Two"
+
+            mock_lucy.guilds = [guild1, guild2]
+
+            mock_lucy.api.guild.get = AsyncMock(return_value = [{"id": "1"}])
+            mock_lucy.api.guild.new = AsyncMock(side_effect = Exception("API error"))
+
+            with patch("modules.Events.Sync.logger") as logger:
+                await cog._refill_guild_info()
+
+                logger.error.assert_called_once()
+
+        @pytest.mark.asyncio
         async def test_setup_adds_cog(self, mock_lucy):
             """ Test that setup registers the Sync cog in Lucy. """
 

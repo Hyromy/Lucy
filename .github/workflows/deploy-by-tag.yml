@@ -41,5 +41,6 @@ jobs:
               -e 'RELEASES_URL=${{ vars.RELEASES_URL }}' \
               -e 'REDIS_URL=${{ vars.REDIS_URL }}' \
               -e 'REDIS_EVENT_PATTERN=${{ vars.REDIS_EVENT_PATTERN }}' \
+              -e 'FRONTEND_URL=${{ vars.FRONTEND_URL }}' \
               ${NETWORK_ARGS} \
               '${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE }}:${{ inputs.image_tag }}'
