@@ -126,6 +126,7 @@ secrets.json
 
 # Docker
 .github/
+.git/
 LICENSE
 *.md
 test/
