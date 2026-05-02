@@ -142,6 +142,9 @@ class _ApiClient:
         path = normalize_url(self.path, endpoint, trailing_slash = self._use_slash)
 
         async with self.session.request(method, path, **kwargs) as response:
+            if response.status == 204:
+                return None
+
             response.raise_for_status()
             return await response.json()
 
